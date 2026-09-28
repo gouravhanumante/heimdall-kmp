@@ -33,6 +33,7 @@ include(":heimdall-core")
 include(":heimdall-ui")
 include(":heimdall-network-ktor")
 include(":heimdall-storage")
+include(":heimdall-flags-firebase")
 
 include(":sample:shared")
 include(":sample:androidApp")

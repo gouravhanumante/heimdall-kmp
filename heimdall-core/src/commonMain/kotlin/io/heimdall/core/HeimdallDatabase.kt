@@ -80,6 +80,10 @@ internal object HeimdallDatabase {
                 "screen TEXT, attributes TEXT NOT NULL, timestamp_millis INTEGER NOT NULL)",
         )
         conn.execSQL("CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id, timestamp_millis)")
+        conn.execSQL(
+            "CREATE TABLE IF NOT EXISTS flag_overrides (" +
+                "key TEXT PRIMARY KEY, value_type TEXT NOT NULL, value TEXT NOT NULL)",
+        )
     }
 
     /** For collectors on a normal thread — network capture, logging, session bookkeeping. */
@@ -129,6 +133,7 @@ internal object HeimdallDatabase {
         write { conn ->
             conn.execSQL("DELETE FROM crash_records")
             conn.execSQL("DELETE FROM events")
+            conn.execSQL("DELETE FROM flag_overrides")
             conn.execSQL("DELETE FROM log_entries")
             conn.execSQL("DELETE FROM network_records")
             conn.execSQL("DELETE FROM sessions")
