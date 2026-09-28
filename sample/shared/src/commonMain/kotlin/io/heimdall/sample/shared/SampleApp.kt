@@ -82,7 +82,7 @@ private val SampleColors = lightColorScheme(
 )
 
 @Composable
-fun SampleApp(overlayController: HeimdallOverlayController) {
+fun SampleApp(overlayController: HeimdallOverlayController, showOverlay: Boolean = true) {
     val client = remember { HttpClient { install(HeimdallKtor) } }
     val database = remember { SampleDatabaseInspector() }
     var screen by remember { mutableStateOf(SampleScreen.DETAILS) }
@@ -114,7 +114,7 @@ fun SampleApp(overlayController: HeimdallOverlayController) {
             large = RoundedCornerShape(16.dp),
         ),
     ) {
-        HeimdallOverlay(controller = overlayController) {
+        val appContent: @Composable () -> Unit = {
             Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF1F4EF))) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -139,6 +139,11 @@ fun SampleApp(overlayController: HeimdallOverlayController) {
                     SampleScreen.LOGS -> LogsScreen()
                 }
             }
+        }
+        if (showOverlay) {
+            HeimdallOverlay(controller = overlayController, content = appContent)
+        } else {
+            appContent()
         }
     }
 }

@@ -1,0 +1,36 @@
+name: HeimdallSample
+options:
+  minimumXcodeGenVersion: 2.42.0
+  deploymentTarget:
+    iOS: "18.0"
+configs:
+  Debug: debug
+  Release: release
+settings:
+  base:
+    PRODUCT_BUNDLE_IDENTIFIER: io.heimdall.sample.ios
+    IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+    SWIFT_VERSION: "5.0"
+targets:
+  HeimdallSample:
+    type: application
+    platform: iOS
+    sources:
+      - path: HeimdallSample
+    info:
+      path: HeimdallSample/Info.plist
+    settings:
+      base:
+        FRAMEWORK_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(PROJECT_DIR)/../shared/build/xcode-frameworks/$(CONFIGURATION)"
+    preBuildScripts:
+      - name: Compile Kotlin Framework
+        basedOnDependencyAnalysis: false
+        script: |
+          cd "$SRCROOT/../.."
+          ./gradlew :sample:shared:embedAndSignAppleFrameworkForXcode
+    dependencies:
+      - framework: ../shared/build/xcode-frameworks/$(CONFIGURATION)/HeimdallSampleShared.framework
+        embed: true
+        codeSign: true

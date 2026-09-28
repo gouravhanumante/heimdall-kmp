@@ -6,6 +6,7 @@ import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import io.heimdall.core.AndroidShakeListener
+import io.heimdall.core.Heimdall
 import io.heimdall.sample.shared.SampleApp
 import io.heimdall.ui.HeimdallOverlayController
 
@@ -18,6 +19,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         controller = HeimdallOverlayController()
+        Heimdall.flags.restartHandler = { recreate() }
         val mainHandler = Handler(Looper.getMainLooper())
         shakeListener = AndroidShakeListener(applicationContext) {
             mainHandler.post { controller.recall() }

@@ -19,11 +19,5 @@ class SampleApp : Application() {
             .apply()
         Heimdall.discoverStorage(this)
 
-        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            Heimdall.recordCrash(throwable, isFatal = true, tag = "AppCrash")
-            Heimdall.markCurrentSessionCrashed()
-            defaultHandler?.uncaughtException(thread, throwable)
-        }
     }
 }

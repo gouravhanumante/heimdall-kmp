@@ -46,3 +46,13 @@ kotlin {
         }
     }
 }
+
+composeCompiler {
+    reportsDestination = layout.buildDirectory.dir("compose-compiler")
+    metricsDestination = layout.buildDirectory.dir("compose-compiler")
+}
+
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "io.heimdall.sample.shared.generated.resources"
+}
