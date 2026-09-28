@@ -37,7 +37,10 @@ class LogStore internal constructor() {
     fun record(entry: LogEntry) {
         if (!Heimdall.enabled) return
         val sessionId = Heimdall.currentSessionId
-        HeimdallDatabase.write { conn -> insert(conn, sessionId, entry) }
+        HeimdallDatabase.write { conn ->
+            insert(conn, sessionId, entry)
+            HeimdallDatabase.pruneIfDue(conn, epochMillisNow(), sessionId)
+        }
         _current.update { (listOf(entry) + it).take(HeimdallDatabase.MAX_LOG_ENTRIES_PER_SESSION) }
     }
 

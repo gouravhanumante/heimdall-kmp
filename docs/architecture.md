@@ -36,9 +36,12 @@ Each store keeps a capped, in-memory, newest-first copy of the **current** sessi
 straight from disk instead. Recording happens whether or not the panel/overlay is open or has
 ever been shown — the store's `record`/`publish` call is what writes, not anything overlay-related.
 
-Retention is oldest-first at two levels: per-session caps (`HeimdallDatabase.MAX_*`) evict the
-oldest rows in that session once exceeded, and a session cap (`MAX_SESSIONS`) evicts whole old
-sessions once exceeded.
+Retention: history older than **24 hours** (`HeimdallDatabase.RETENTION_MILLIS`) is deleted at
+startup and at most once an hour while the app runs (`pruneIfDue`). A launch older than 24 hours
+stays while it still has newer rows (a process left running across days). Per-session caps
+(`HeimdallDatabase.MAX_*`) additionally drop the oldest rows in a launch once exceeded, as a disk
+safety net. Long-term crash history is out of scope — use a crash reporter such as Firebase
+Crashlytics for that.
 
 ### History vs. live state
 

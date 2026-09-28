@@ -17,13 +17,15 @@ import kotlinx.coroutines.sync.withLock
  * purely as a cross-platform mutual-exclusion lock, not because real suspension happens inside.
  */
 internal object HeimdallDatabase {
-    const val MAX_SESSIONS = 20
+    const val RETENTION_MILLIS = 24L * 60 * 60 * 1000
     const val MAX_NETWORK_RECORDS_PER_SESSION = 5_000
     const val MAX_LOG_ENTRIES_PER_SESSION = 20_000
     const val MAX_CRASH_RECORDS_PER_SESSION = 200
+    private const val PRUNE_INTERVAL_MILLIS = 60L * 60 * 1000
 
     private val mutex = Mutex()
     private var connection: SQLiteConnection? = null
+    private var lastPrunedAtMillis: Long? = null
 
     fun openForApp(context: PlatformContext) {
         open(resolveDatabasePath(context, "heimdall.db"))
@@ -89,11 +91,31 @@ internal object HeimdallDatabase {
 
     fun isOpen(): Boolean = connection != null
 
+    /** Deletes history older than [RETENTION_MILLIS]. Must be called inside [write]. Runs at most
+     * once per [PRUNE_INTERVAL_MILLIS], so a process that stays alive for days still gets pruned. */
+    fun pruneIfDue(conn: SQLiteConnection, nowMillis: Long, currentSessionId: Long) {
+        val last = lastPrunedAtMillis
+        if (last != null && nowMillis - last < PRUNE_INTERVAL_MILLIS) return
+        lastPrunedAtMillis = nowMillis
+        val cutoff = nowMillis - RETENTION_MILLIS
+        conn.execSQL("DELETE FROM network_records WHERE started_at_millis < $cutoff")
+        conn.execSQL("DELETE FROM log_entries WHERE timestamp_millis < $cutoff")
+        conn.execSQL("DELETE FROM crash_records WHERE timestamp_millis < $cutoff")
+        // A launch older than the cutoff stays while it still has recent rows, or is the current one.
+        conn.execSQL(
+            "DELETE FROM sessions WHERE started_at_millis < $cutoff AND id != $currentSessionId " +
+                "AND id NOT IN (SELECT session_id FROM network_records) " +
+                "AND id NOT IN (SELECT session_id FROM log_entries) " +
+                "AND id NOT IN (SELECT session_id FROM crash_records)",
+        )
+    }
+
     private fun requireConnection(): SQLiteConnection =
         connection ?: error("Heimdall.install(context) must be called before recording anything")
 
     /** Test-only: drops every row without closing the connection, so each test starts clean. */
     fun clearAllForTests() {
+        lastPrunedAtMillis = null
         write { conn ->
             conn.execSQL("DELETE FROM crash_records")
             conn.execSQL("DELETE FROM log_entries")

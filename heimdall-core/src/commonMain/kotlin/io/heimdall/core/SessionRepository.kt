@@ -1,10 +1,7 @@
 package io.heimdall.core
 
-import androidx.sqlite.SQLiteConnection
-import androidx.sqlite.execSQL
-
-/** Session bookkeeping: starting one, evicting the oldest beyond [HeimdallDatabase.MAX_SESSIONS],
- * and reading them back for the panel's session picker. */
+/** Session bookkeeping: starting one, pruning history older than
+ * [HeimdallDatabase.RETENTION_MILLIS], and reading sessions back for the panel's session picker. */
 internal object SessionRepository {
 
     fun startNewSession(startedAtMillis: Long): Long = HeimdallDatabase.write { conn ->
@@ -13,7 +10,7 @@ internal object SessionRepository {
             stmt.step()
         }
         val id = conn.lastInsertRowId()
-        evictOldSessions(conn)
+        HeimdallDatabase.pruneIfDue(conn, startedAtMillis, currentSessionId = id)
         id
     }
 
@@ -34,19 +31,5 @@ internal object SessionRepository {
                 }
             }
         }
-    }
-
-    private fun evictOldSessions(conn: androidx.sqlite.SQLiteConnection) {
-        conn.prepare(
-            "DELETE FROM sessions WHERE id IN (SELECT id FROM sessions ORDER BY id DESC LIMIT -1 OFFSET ?)",
-        ).use { stmt ->
-            stmt.bindLong(1, HeimdallDatabase.MAX_SESSIONS.toLong())
-            stmt.step()
-        }
-        // No foreign keys configured, so a session's rows in other tables need an explicit
-        // cleanup pass rather than a cascade delete.
-        conn.execSQL("DELETE FROM network_records WHERE session_id NOT IN (SELECT id FROM sessions)")
-        conn.execSQL("DELETE FROM log_entries WHERE session_id NOT IN (SELECT id FROM sessions)")
-        conn.execSQL("DELETE FROM crash_records WHERE session_id NOT IN (SELECT id FROM sessions)")
     }
 }

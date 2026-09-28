@@ -15,8 +15,8 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   had a fatal crash is flagged (`Session.crashed`).
 - `NetworkStore`/`LogStore`/`CrashStore` now expose `current: StateFlow<List<_>>` (the live
   current session, newest-first) instead of a `snapshot()` function.
-- Retention: oldest-first eviction per session (5,000 network records / 20,000 log entries / 200
-  crash records) and oldest-first eviction across sessions (last 20 kept).
+- Retention: history older than 24 hours is deleted (at startup and hourly while running), plus
+  oldest-first caps per session (5,000 network records / 20,000 log entries / 200 crash records).
 
 ### Added
 - `heimdall-core`: `ShakeDetector` (shared threshold/debounce logic) and `AndroidShakeListener`

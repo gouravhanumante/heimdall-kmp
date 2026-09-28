@@ -37,7 +37,10 @@ class NetworkStore internal constructor() {
     fun record(entry: NetworkRecord) {
         if (!Heimdall.enabled) return
         val sessionId = Heimdall.currentSessionId
-        HeimdallDatabase.write { conn -> insert(conn, sessionId, entry) }
+        HeimdallDatabase.write { conn ->
+            insert(conn, sessionId, entry)
+            HeimdallDatabase.pruneIfDue(conn, epochMillisNow(), sessionId)
+        }
         _current.update { (listOf(entry) + it).take(HeimdallDatabase.MAX_NETWORK_RECORDS_PER_SESSION) }
     }
 
