@@ -1,5 +1,9 @@
 package io.heimdall.core
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
+
 data class DatabaseTable(
     val name: String,
     val columns: List<String>,
@@ -17,17 +21,54 @@ fun interface DatabaseQueryRunner {
     fun query(sql: String): DatabaseTable
 }
 
+interface DatabaseInspector {
+    val databaseName: String
+
+    /** Return a bounded, read-only view of the database's current tables and rows. */
+    fun snapshot(): DatabaseSnapshot
+
+    /** Run a read-only query using the app database's own driver or framework. */
+    fun query(sql: String): DatabaseTable
+}
+
 class DatabaseStore internal constructor() {
-    private val snapshots = mutableMapOf<String, DatabaseSnapshot>()
-    private val queryRunners = mutableMapOf<String, DatabaseQueryRunner>()
+    private val _current = MutableStateFlow<List<DatabaseSnapshot>>(emptyList())
+    val current: StateFlow<List<DatabaseSnapshot>> = _current
+
+    private val snapshots = linkedMapOf<String, DatabaseSnapshot>()
+    private val queryRunners = linkedMapOf<String, DatabaseQueryRunner>()
+    private val inspectors = linkedMapOf<String, DatabaseInspector>()
 
     fun publish(snapshot: DatabaseSnapshot, queryRunner: DatabaseQueryRunner? = null) {
         if (!Heimdall.enabled) return
         snapshots[snapshot.databaseName] = snapshot
         if (queryRunner != null) queryRunners[snapshot.databaseName] = queryRunner
+        _current.update { snapshots.values.toList() }
     }
 
-    fun snapshot(): List<DatabaseSnapshot> = snapshots.values.toList()
+    fun attach(inspector: DatabaseInspector) {
+        if (!Heimdall.enabled) return
+        inspectors[inspector.databaseName] = inspector
+        publish(
+            snapshot = inspector.snapshot(),
+            queryRunner = DatabaseQueryRunner(inspector::query),
+        )
+    }
+
+    fun refresh(databaseName: String) {
+        if (!Heimdall.enabled) return
+        val inspector = inspectors[databaseName] ?: return
+        publish(
+            snapshot = inspector.snapshot(),
+            queryRunner = DatabaseQueryRunner(inspector::query),
+        )
+    }
+
+    fun refreshAll() {
+        inspectors.keys.toList().forEach(::refresh)
+    }
+
+    fun snapshot(): List<DatabaseSnapshot> = _current.value
 
     fun queryRunnerFor(databaseName: String): DatabaseQueryRunner? = queryRunners[databaseName]
 }

@@ -21,6 +21,8 @@ internal object HeimdallDatabase {
     const val MAX_NETWORK_RECORDS_PER_SESSION = 5_000
     const val MAX_LOG_ENTRIES_PER_SESSION = 20_000
     const val MAX_CRASH_RECORDS_PER_SESSION = 200
+    const val MAX_EVENTS_PER_SESSION = 5_000
+    const val MAX_PERFORMANCE_RECORDS = 1_000
     private const val PRUNE_INTERVAL_MILLIS = 60L * 60 * 1000
 
     private val mutex = Mutex()
@@ -72,6 +74,12 @@ internal object HeimdallDatabase {
                 "exception_type TEXT NOT NULL, message TEXT, stack_trace_text TEXT NOT NULL, " +
                 "timestamp_millis INTEGER NOT NULL)",
         )
+        conn.execSQL(
+            "CREATE TABLE IF NOT EXISTS events (" +
+                "id TEXT PRIMARY KEY, session_id INTEGER NOT NULL, name TEXT NOT NULL, " +
+                "screen TEXT, attributes TEXT NOT NULL, timestamp_millis INTEGER NOT NULL)",
+        )
+        conn.execSQL("CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id, timestamp_millis)")
     }
 
     /** For collectors on a normal thread — network capture, logging, session bookkeeping. */
@@ -101,12 +109,14 @@ internal object HeimdallDatabase {
         conn.execSQL("DELETE FROM network_records WHERE started_at_millis < $cutoff")
         conn.execSQL("DELETE FROM log_entries WHERE timestamp_millis < $cutoff")
         conn.execSQL("DELETE FROM crash_records WHERE timestamp_millis < $cutoff")
+        conn.execSQL("DELETE FROM events WHERE timestamp_millis < $cutoff")
         // A launch older than the cutoff stays while it still has recent rows, or is the current one.
         conn.execSQL(
             "DELETE FROM sessions WHERE started_at_millis < $cutoff AND id != $currentSessionId " +
                 "AND id NOT IN (SELECT session_id FROM network_records) " +
                 "AND id NOT IN (SELECT session_id FROM log_entries) " +
-                "AND id NOT IN (SELECT session_id FROM crash_records)",
+                "AND id NOT IN (SELECT session_id FROM crash_records) " +
+                "AND id NOT IN (SELECT session_id FROM events)",
         )
     }
 
@@ -118,6 +128,7 @@ internal object HeimdallDatabase {
         lastPrunedAtMillis = null
         write { conn ->
             conn.execSQL("DELETE FROM crash_records")
+            conn.execSQL("DELETE FROM events")
             conn.execSQL("DELETE FROM log_entries")
             conn.execSQL("DELETE FROM network_records")
             conn.execSQL("DELETE FROM sessions")

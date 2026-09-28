@@ -1,5 +1,9 @@
 package io.heimdall.core
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
+
 /** A flag/entitlement value. Kept to three primitive shapes so the panel can render a sensible
  * editor (switch / text field / number field) without needing per-app type knowledge. */
 sealed class FlagValue {
@@ -17,6 +21,9 @@ fun interface FlagProvider {
 }
 
 class FlagStore internal constructor() {
+    private val _current = MutableStateFlow<Map<String, FlagValue>>(emptyMap())
+    val current: StateFlow<Map<String, FlagValue>> = _current
+
     private val definitions = mutableMapOf<String, FlagDefinition>()
     private val overrides = mutableMapOf<String, FlagValue>()
 
@@ -24,6 +31,7 @@ class FlagStore internal constructor() {
      * only show flags declared this way — see docs/plugins/flags.md. */
     fun register(definition: FlagDefinition) {
         definitions[definition.key] = definition
+        _current.update { overrides.toMap() }
     }
 
     fun definitions(): List<FlagDefinition> = definitions.values.toList()
@@ -32,9 +40,13 @@ class FlagStore internal constructor() {
 
     fun setOverride(key: String, value: FlagValue?) {
         if (value == null) overrides.remove(key) else overrides[key] = value
+        _current.update { overrides.toMap() }
     }
 
-    fun resetAll() = overrides.clear()
+    fun resetAll() {
+        overrides.clear()
+        _current.update { emptyMap() }
+    }
 }
 
 /**
