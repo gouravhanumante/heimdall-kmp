@@ -100,6 +100,9 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   raw SQLite adapter modules remain separate work.
 
 ### Added
+- Added `Heimdall.bubblePosition`: the bubble's resting position (as a screen fraction) now
+  survives an app restart, restored on `Heimdall.install(...)`/`installInMemory()`. Previously it
+  only survived hide/show within one run.
 - Added `heimdall-core-noop`, `heimdall-ui-noop`, and `heimdall-network-ktor-noop`: drop-in,
   same-package no-op counterparts for release builds, wired via
   `debugImplementation`/`releaseImplementation` on Android. `Heimdall.measure`/`screen` still run

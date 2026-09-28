@@ -84,6 +84,10 @@ internal object HeimdallDatabase {
             "CREATE TABLE IF NOT EXISTS flag_overrides (" +
                 "key TEXT PRIMARY KEY, value_type TEXT NOT NULL, value TEXT NOT NULL)",
         )
+        conn.execSQL(
+            "CREATE TABLE IF NOT EXISTS bubble_position (" +
+                "id INTEGER PRIMARY KEY, x_fraction REAL NOT NULL, y_fraction REAL NOT NULL)",
+        )
     }
 
     /** For collectors on a normal thread — network capture, logging, session bookkeeping. */
@@ -131,6 +135,7 @@ internal object HeimdallDatabase {
     fun clearAllForTests() {
         lastPrunedAtMillis = null
         write { conn ->
+            conn.execSQL("DELETE FROM bubble_position")
             conn.execSQL("DELETE FROM crash_records")
             conn.execSQL("DELETE FROM events")
             conn.execSQL("DELETE FROM flag_overrides")

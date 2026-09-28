@@ -12,6 +12,11 @@ Implemented in `heimdall-ui` (`HeimdallOverlay`, `HeimdallBubbleLayer`, `Heimdal
   bottom. Dropping the bubble with its centre inside the bottom 140dp (`HideZoneHeight`) hides it.
 - The bubble remembers where it was **before** that drag, so a recall brings it back there, not
   into the hide zone. It can be hidden and recalled any number of times.
+- Its resting position (after a successful drag to an edge) is saved as a fraction of the screen
+  through `Heimdall.bubblePosition`, and restored on the next `Heimdall.install(...)` — so it
+  survives an app restart, not just hide/show within one run. A bubble that's never been dragged
+  still uses the proportional default so it adapts to rotation/screen size; once restored from a
+  past run, it's fixed in pixels for that composition, same as any other in-run drag.
 - Touches anywhere outside the bubble reach the app underneath.
 
 ## Shake-to-recall

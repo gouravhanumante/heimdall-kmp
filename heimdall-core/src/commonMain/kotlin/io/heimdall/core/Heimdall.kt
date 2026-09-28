@@ -17,6 +17,7 @@ object Heimdall {
     val storage = StorageStore()
     val database = DatabaseStore()
     val flags = FlagStore()
+    val bubblePosition = BubblePositionStore()
 
     /** A session is one process run — see [Session]. Call once at app start, before anything
      * else on this object; nothing before this has anywhere to persist to. */
@@ -33,6 +34,7 @@ object Heimdall {
         HeimdallDatabase.openForApp(context)
         currentSessionId = SessionRepository.startNewSession(epochMillisNow())
         flags.restorePersisted()
+        bubblePosition.restorePersisted()
         installPlatformHooks(context)
     }
 
@@ -43,6 +45,7 @@ object Heimdall {
         HeimdallDatabase.openInMemory()
         currentSessionId = SessionRepository.startNewSession(epochMillisNow())
         flags.restorePersisted()
+        bubblePosition.restorePersisted()
     }
 
     fun log(

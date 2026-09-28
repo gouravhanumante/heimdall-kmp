@@ -38,6 +38,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.heimdall.core.BubblePosition
+import io.heimdall.core.Heimdall
 import io.heimdall.ui.generated.resources.Res
 import io.heimdall.ui.generated.resources.heimdall_horn_logo
 import org.jetbrains.compose.resources.painterResource
@@ -54,7 +56,7 @@ private val HideTargetActive = HeimdallDesign.error
  * Full-screen layer that draws only the bubble; it has no pointer handling of its own, so touches
  * outside the bubble reach the app underneath. Dropping the bubble in the bottom [HideZoneHeight]
  * calls [onHide]; otherwise it springs to the nearest side edge. Its position is kept across
- * hide/show, so a recall brings it back where it was.
+ * hide/show and, once [Heimdall.install] has been called, across app restarts too.
  */
 @Composable
 internal fun HeimdallBubbleLayer(
@@ -72,8 +74,14 @@ internal fun HeimdallBubbleLayer(
         val edgeInset = with(density) { BubbleEdgeInset.toPx() }
         val defaultPosition = Offset(maxX - edgeInset, maxY * 0.7f)
 
-        // null until first dragged, so the default follows screen size changes (rotation).
-        var restPosition by remember { mutableStateOf<Offset?>(null) }
+        // null until first dragged (or restored from a past run), so the default follows screen
+        // size changes (rotation). A restored position is converted to pixels once, at this
+        // composition's current size — same limitation an in-run drag already has on rotation.
+        var restPosition by remember {
+            mutableStateOf(
+                Heimdall.bubblePosition.current.value?.let { Offset(it.xFraction * maxX, it.yFraction * maxY) },
+            )
+        }
         var dragPosition by remember { mutableStateOf<Offset?>(null) }
         var positionBeforeDrag by remember { mutableStateOf<Offset?>(null) }
         var dragging by remember { mutableStateOf(false) }
@@ -137,7 +145,11 @@ internal fun HeimdallBubbleLayer(
                                     restPosition = positionBeforeDrag
                                     latestOnHide()
                                 } else {
-                                    restPosition = snapToEdge(released)
+                                    val snapped = snapToEdge(released)
+                                    restPosition = snapped
+                                    if (maxX > 0f && maxY > 0f) {
+                                        Heimdall.bubblePosition.save(BubblePosition(snapped.x / maxX, snapped.y / maxY))
+                                    }
                                 }
                             },
                             onDragCancel = {

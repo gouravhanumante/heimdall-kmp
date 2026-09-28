@@ -16,6 +16,7 @@ object Heimdall {
     val storage = StorageStore()
     val database = DatabaseStore()
     val flags = FlagStore()
+    val bubblePosition = BubblePositionStore()
 
     var currentSessionId: Long = 0
         private set

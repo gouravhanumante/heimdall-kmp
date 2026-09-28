@@ -11,8 +11,6 @@ Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
 - **Back handling is platform-hosted.** Android's sample uses `BackHandler` to close the SDK
   inspector first and then return from sample screens; consuming apps must connect their own
   navigation back callback to `HeimdallOverlayController.handleBack()`.
-- **Bubble position isn't saved across app restarts.** It survives hide/show within a run, but a
-  new launch starts at the default position.
 - **No no-op mirror for `heimdall-storage`, `heimdall-database-sqlite`, `heimdall-flags-firebase`.**
   `heimdall-core-noop`, `heimdall-ui-noop`, and `heimdall-network-ktor-noop` exist and are
   JVM-tested; these three collector modules don't have a `-noop` counterpart yet, so their code

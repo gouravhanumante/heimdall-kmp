@@ -34,7 +34,9 @@ resolved does.
 
 - **`heimdall-core-noop`**: `Heimdall.install`/`installInMemory` do nothing; `log`/`event`/
   `recordCrash` do nothing; every store's `current` is a permanently empty `StateFlow`, `clear()`/
-  `forSession(...)` are no-ops. `Heimdall.measure(...)` and `Heimdall.screen(...)` still run and
+  `forSession(...)` are no-ops. `Heimdall.bubblePosition.save(...)` doesn't persist anything either
+  — moot in practice, since `heimdall-ui-noop` never renders a bubble to have a position.
+  `Heimdall.measure(...)` and `Heimdall.screen(...)` still run and
   return the block they're given — only the capture around it is removed, never the app's own
   code. `Heimdall.flags.attach(catalog)` always delegates straight to the app's real flag
   provider — there is no override store in a release build, so the app's actual feature flag
