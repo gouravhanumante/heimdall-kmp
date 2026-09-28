@@ -100,6 +100,13 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   raw SQLite adapter modules remain separate work.
 
 ### Added
+- Added `heimdall-core-noop`, `heimdall-ui-noop`, and `heimdall-network-ktor-noop`: drop-in,
+  same-package no-op counterparts for release builds, wired via
+  `debugImplementation`/`releaseImplementation` on Android. `Heimdall.measure`/`screen` still run
+  their block; `Heimdall.flags.attach(...)` still delegates to the app's real flag provider so
+  production feature flags are unaffected. `heimdall-storage`, `heimdall-database-sqlite`, and
+  `heimdall-flags-firebase` don't have a no-op counterpart yet, and the iOS debug/release swap
+  mechanism is unresolved — see `docs/release-builds.md`.
 - Added optional `heimdall-database-sqlite`: `SqliteFileInspector`, a `DatabaseInspector` that
   reads any on-disk SQLite file by path — covers Room, SQLDelight, and raw SQLite databases with
   one adapter, since all three are a plain SQLite file underneath. Opens its own read-only

@@ -15,7 +15,12 @@ Keychain). See [docs/TODO.md](docs/TODO.md) and [docs/platform-support.md](docs/
 |---|---|
 | `heimdall-core` | Platform-agnostic logic: shake detection, sessions, collectors, events and screen attribution. No UI. |
 | `heimdall-ui` | Compose Multiplatform bubble, overview, timeline and inspector tabs. |
-| `sample/androidApp` | Minimal Android app wiring the two together — the integration reference. |
+| `heimdall-network-ktor` | Ktor `HttpClient` plugin that reports into `Heimdall.network`. |
+| `heimdall-storage` | DataStore/SharedPreferences/UserDefaults/Keystore/Keychain discovery. |
+| `heimdall-database-sqlite` | `DatabaseInspector` adapter for any on-disk SQLite file (Room, SQLDelight, raw). |
+| `heimdall-flags-firebase` | Firebase Remote Config flag adapter (Android). |
+| `heimdall-core-noop`, `heimdall-ui-noop`, `heimdall-network-ktor-noop` | Same-API, do-nothing counterparts for release builds — see `docs/release-builds.md`. |
+| `sample/androidApp`, `sample/shared`, `sample/iosApp` | Reference integration wiring the modules together. |
 
 See [docs/architecture.md](docs/architecture.md) for the module graph and the design decisions
 behind it, and [docs/overlay.md](docs/overlay.md) for exactly what the bubble/panel does.
@@ -26,6 +31,14 @@ behind it, and [docs/overlay.md](docs/overlay.md) for exactly what the bubble/pa
 ./gradlew :sample:androidApp:installDebug
 ```
 
+## Release builds
+
+Every module above always runs its real implementation — do not add them to a release build's
+dependencies as-is. `heimdall-core`, `heimdall-ui`, and `heimdall-network-ktor` have a `-noop`
+counterpart to swap in via `releaseImplementation` instead; see
+[docs/release-builds.md](docs/release-builds.md) for exactly what is and isn't covered yet.
+
 ## License
+
 
 Apache-2.0.

@@ -13,8 +13,14 @@ Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
   navigation back callback to `HeimdallOverlayController.handleBack()`.
 - **Bubble position isn't saved across app restarts.** It survives hide/show within a run, but a
   new launch starts at the default position.
-- **No no-op / release-safety mechanism.** See `docs/release-builds.md`. Must exist before any
-  consumer is told it's safe to ship with Heimdall in the dependency graph.
+- **No no-op mirror for `heimdall-storage`, `heimdall-database-sqlite`, `heimdall-flags-firebase`.**
+  `heimdall-core-noop`, `heimdall-ui-noop`, and `heimdall-network-ktor-noop` exist and are
+  JVM-tested; these three collector modules don't have a `-noop` counterpart yet, so their code
+  still runs if kept on a release build's classpath. See `docs/release-builds.md`.
+- **iOS release swap mechanism is unresolved.** The no-op modules compile for `iosArm64`/
+  `iosSimulatorArm64`, but there's no iOS equivalent of `debugImplementation`/
+  `releaseImplementation` proven out yet — how a consumer picks the real framework for a debug
+  scheme and the no-op one for release is still open. See `docs/release-builds.md`.
 - **Database, logs/crash capture** (chunks 5–7) still need richer adapters and detail interactions.
   Flag overrides are durable with boolean, text, number, and per-flag reset controls.
 - **Database framework adapters.** `DatabaseInspector` is the shared attach/refresh contract.

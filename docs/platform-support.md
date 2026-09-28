@@ -19,4 +19,4 @@ One row per feature. "Verified" means run and observed on that platform, not jus
 | Crash capture | Android sample uncaught-handler wiring and panel view implemented; not run | No platform uncaught-handler wiring |
 | Feature-flag overrides | In-memory override API and panel controls implemented; not run | Shared core/UI code; not run |
 | Live frame timing | Android `Choreographer` monitor installed by `Heimdall.install`; not run | iOS `CADisplayLink` monitor installed by `Heimdall.install`; not run |
-| No-op / release-safe artifact | Not implemented | Not implemented |
+| No-op / release-safe artifact | `heimdall-core-noop`, `heimdall-ui-noop`, `heimdall-network-ktor-noop` implemented and JVM-tested (9 tests); `heimdall-storage`/`heimdall-database-sqlite`/`heimdall-flags-firebase` have none yet | Compiles for `iosArm64`/`iosSimulatorArm64`; the debug/release swap mechanism itself is unresolved, not run |
