@@ -12,6 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateOffsetAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 
 private val BubbleSize = 56.dp
+private val BubbleEdgeInset = 8.dp
 private val HideZoneHeight = 140.dp
 private val BubbleColor = Color(0xFF1E1B4B)
 private val HideTargetIdle = Color(0xCC111111)
@@ -42,7 +47,8 @@ private val HideTargetActive = Color(0xFFDC2626)
 /**
  * Full-screen layer that draws only the bubble; it has no pointer handling of its own, so touches
  * outside the bubble reach the app underneath. Dropping the bubble in the bottom [HideZoneHeight]
- * calls [onHide]; its position is kept across hide/show, so a recall brings it back where it was.
+ * calls [onHide]; otherwise it springs to the nearest side edge. Its position is kept across
+ * hide/show, so a recall brings it back where it was.
  */
 @Composable
 internal fun HeimdallBubbleLayer(
@@ -56,10 +62,12 @@ internal fun HeimdallBubbleLayer(
         val maxX = (constraints.maxWidth - bubblePx).coerceAtLeast(0f)
         val maxY = (constraints.maxHeight - bubblePx).coerceAtLeast(0f)
         val hideLineY = constraints.maxHeight - with(density) { HideZoneHeight.toPx() }
-        val defaultPosition = Offset(maxX, maxY * 0.7f)
+        val edgeInset = with(density) { BubbleEdgeInset.toPx() }
+        val defaultPosition = Offset(maxX - edgeInset, maxY * 0.7f)
 
         // null until first dragged, so the default follows screen size changes (rotation).
-        var position by remember { mutableStateOf<Offset?>(null) }
+        var restPosition by remember { mutableStateOf<Offset?>(null) }
+        var dragPosition by remember { mutableStateOf<Offset?>(null) }
         var positionBeforeDrag by remember { mutableStateOf<Offset?>(null) }
         var dragging by remember { mutableStateOf(false) }
         val latestOnTap by rememberUpdatedState(onTap)
@@ -67,13 +75,28 @@ internal fun HeimdallBubbleLayer(
 
         fun clamp(offset: Offset) = Offset(offset.x.coerceIn(0f, maxX), offset.y.coerceIn(0f, maxY))
         fun isOverHideZone(offset: Offset) = offset.y + bubblePx / 2 > hideLineY
+        fun snapToEdge(offset: Offset): Offset {
+            val x = if (offset.x + bubblePx / 2 < constraints.maxWidth / 2f) edgeInset else maxX - edgeInset
+            val y = offset.y.coerceIn(edgeInset, (maxY - edgeInset).coerceAtLeast(edgeInset))
+            return clamp(Offset(x, y))
+        }
 
-        val shown = clamp(position ?: defaultPosition)
+        val target = clamp(dragPosition ?: restPosition ?: defaultPosition)
+        // snap() while dragging so the bubble tracks the finger; the spring is only for the release.
+        val shown by animateOffsetAsState(
+            targetValue = target,
+            animationSpec = if (dragging) {
+                snap()
+            } else {
+                spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)
+            },
+            label = "bubblePosition",
+        )
 
         if (visible) {
             if (dragging) {
                 HideTarget(
-                    active = isOverHideZone(shown),
+                    active = isOverHideZone(target),
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp),
                 )
             }
@@ -89,23 +112,30 @@ internal fun HeimdallBubbleLayer(
                     .pointerInput(maxX, maxY, hideLineY) {
                         detectDragGestures(
                             onDragStart = {
-                                positionBeforeDrag = clamp(position ?: defaultPosition)
+                                val start = clamp(restPosition ?: defaultPosition)
+                                positionBeforeDrag = start
+                                dragPosition = start
                                 dragging = true
                             },
                             onDrag = { change, amount ->
                                 change.consume()
-                                position = clamp((position ?: defaultPosition) + amount)
+                                dragPosition = clamp((dragPosition ?: defaultPosition) + amount)
                             },
                             onDragEnd = {
+                                val released = dragPosition ?: positionBeforeDrag ?: defaultPosition
                                 dragging = false
-                                if (isOverHideZone(clamp(position ?: defaultPosition))) {
-                                    position = positionBeforeDrag
+                                dragPosition = null
+                                if (isOverHideZone(released)) {
+                                    restPosition = positionBeforeDrag
                                     latestOnHide()
+                                } else {
+                                    restPosition = snapToEdge(released)
                                 }
                             },
                             onDragCancel = {
                                 dragging = false
-                                position = positionBeforeDrag
+                                dragPosition = null
+                                restPosition = positionBeforeDrag
                             },
                         )
                     },

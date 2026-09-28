@@ -14,9 +14,25 @@ import androidx.compose.ui.Modifier
 class HeimdallOverlayController {
     internal var bubbleVisible by mutableStateOf(true)
         private set
+    internal var panelOpen by mutableStateOf(false)
+        private set
 
     fun recall() {
         bubbleVisible = true
+    }
+
+    internal fun openPanel() {
+        panelOpen = true
+    }
+
+    internal fun closePanel() {
+        panelOpen = false
+    }
+
+    fun handleBack(): Boolean {
+        if (!panelOpen) return false
+        panelOpen = false
+        return true
     }
 
     internal fun hide() {
@@ -33,20 +49,18 @@ fun HeimdallOverlay(
     controller: HeimdallOverlayController = remember { HeimdallOverlayController() },
     content: @Composable () -> Unit,
 ) {
-    var panelOpen by remember { mutableStateOf(false) }
-
     Box(modifier = Modifier.fillMaxSize()) {
         content()
 
         // Always composed, even while hidden or behind the panel, so the bubble keeps its position.
         HeimdallBubbleLayer(
-            visible = controller.bubbleVisible && !panelOpen,
-            onTap = { panelOpen = true },
+            visible = controller.bubbleVisible && !controller.panelOpen,
+            onTap = { controller.openPanel() },
             onHide = { controller.hide() },
         )
 
-        if (panelOpen) {
-            HeimdallPanel(onClose = { panelOpen = false })
+        if (controller.panelOpen) {
+            HeimdallPanel(onClose = { controller.closePanel() })
         }
     }
 }
