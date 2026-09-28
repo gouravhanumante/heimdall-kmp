@@ -6,7 +6,11 @@
 graph TD
     core[heimdall-core] --> ui[heimdall-ui]
     core --> networkKtor[heimdall-network-ktor]
+    core --> storage[heimdall-storage]
+    core --> databaseSqlite[heimdall-database-sqlite]
+    core --> flagsFirebase[heimdall-flags-firebase]
     ui --> sampleAndroid[sample/androidApp]
+    ui --> sampleShared[sample/shared]
 ```
 
 - **`heimdall-core`**: no UI, no Compose dependency. Shake detection (`ShakeDetector` shared +
@@ -17,10 +21,17 @@ graph TD
   app could reuse this layer without pulling in Compose.
 - **`heimdall-network-ktor`**: a Ktor `HttpClient` plugin that reports into `Heimdall.network`.
   Depends only on `heimdall-core` + Ktor, not on `heimdall-ui`.
+- **`heimdall-storage`**: `attachDataStore` plus SharedPreferences/UserDefaults/Keystore/Keychain
+  discovery. See `docs/plugins/storage.md`.
+- **`heimdall-database-sqlite`**: `SqliteFileInspector`, a `DatabaseInspector` that reads any
+  on-disk SQLite file (Room, SQLDelight, raw). See `docs/plugins/database.md`.
+- **`heimdall-flags-firebase`** (Android): `FirebaseRemoteConfig.attachToHeimdall()`, a
+  `FlagProvider` that discovers Remote Config keys.
 - **`heimdall-ui`**: Compose Multiplatform. `HeimdallBubble`, `HeimdallPanel`,
   `HeimdallOverlay` (the composable a consumer wraps their content in).
-- Further collector modules (storage/DB/logs/flags UI) don't exist yet — each is its own module
-  so a consumer only pulls in what they use.
+- Collector modules are each their own module so a consumer only pulls in what they use. Logs and
+  crash capture have no separate module: they're plain `Heimdall.log`/`Heimdall.recordCrash` calls
+  in `heimdall-core`, with no framework to adapt to.
 
 ## Persistence and sessions
 

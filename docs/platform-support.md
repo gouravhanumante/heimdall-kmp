@@ -11,7 +11,7 @@ One row per feature. "Verified" means run and observed on that platform, not jus
 | Overlay lives above native screens/sheets | Not supported: `HeimdallOverlay` wraps the root composable, so Compose `Dialog`/`ModalBottomSheet`/`Popup` (own windows) cover the bubble | Partial: default is the same shared overlay; opt-in sample `MainViewControllerWithNativeOverlayWindow()` hosts it in a separate `UIWindow` — implemented, not run |
 | Network capture (Ktor plugin) | Implemented, JVM-tested with `MockEngine`. No UI yet | Compiles. Not run |
 | Persistence (own SQLite DB, sessions, retention) | Implemented, JVM-tested (`sqlite-bundled-jvm` for host tests) | Compiles (`sqlite-bundled` for `iosArm64`/`iosSimulatorArm64`). Not run |
-| Database inspector | Core `DatabaseInspector` adapter API and panel refresh exist; Room/SQLDelight/raw SQLite adapters not included | Same shared API; no framework adapters included |
+| Database inspector | Core `DatabaseInspector` adapter API and panel refresh exist. `heimdall-database-sqlite`'s `SqliteFileInspector` covers Room/SQLDelight/raw SQLite by file path (JVM-tested, 5 tests) | Same shared API and adapter; compiles for `iosArm64`/`iosSimulatorArm64`, not run |
 | Storage: DataStore (`attachDataStore`) | Implemented, JVM-tested. No UI yet | Compiles. Not run |
 | Storage: SharedPreferences / UserDefaults discovery, re-scan on tab open | Written, not compiled by me yet, not run | Written, not compiled by me yet, not run (text values editable only) |
 | Storage: Android Keystore (aliases, read-only) / iOS Keychain (generic passwords, editable) | Written, not compiled by me yet, not run | Written, not compiled by me yet, not run |

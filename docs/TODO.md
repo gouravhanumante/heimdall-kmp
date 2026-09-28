@@ -17,8 +17,12 @@ Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
   consumer is told it's safe to ship with Heimdall in the dependency graph.
 - **Database, logs/crash capture** (chunks 5–7) still need richer adapters and detail interactions.
   Flag overrides are durable with boolean, text, number, and per-flag reset controls.
-- **Database framework adapters.** `DatabaseInspector` is the shared attach/refresh contract, but
-  Room, SQLDelight, and raw SQLite adapter modules still need to be implemented separately.
+- **Database framework adapters.** `DatabaseInspector` is the shared attach/refresh contract.
+  `heimdall-database-sqlite`'s `SqliteFileInspector` covers Room/SQLDelight/raw SQLite by reading
+  the on-disk file directly (works for any of them, since all three end up as a plain SQLite
+  file) but only shows raw tables — it doesn't understand Room entities/relations or SQLDelight's
+  generated queries, and it can't inspect an in-memory (`:memory:`) database. Not yet run against
+  a real Room or SQLDelight database, only a hand-built fixture.
 - **Firebase/remote-config flag adapter.** Android Firebase Remote Config discovery is implemented;
   iOS Firebase adapter parity and explicit type metadata for ambiguous string values remain.
 - **`Heimdall.install()` isn't enforced.** Recording before it throws at runtime

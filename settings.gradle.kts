@@ -34,6 +34,7 @@ include(":heimdall-ui")
 include(":heimdall-network-ktor")
 include(":heimdall-storage")
 include(":heimdall-flags-firebase")
+include(":heimdall-database-sqlite")
 
 include(":sample:shared")
 include(":sample:androidApp")

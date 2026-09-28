@@ -15,7 +15,7 @@ noted, "has unit tests", not "works".
 | 3 | Network capture (Ktor): headers/bodies as-is, failed calls recorded | Committed, tested |
 | 4 | Storage: DataStore, SharedPreferences, Keystore, UserDefaults, Keychain | Rewritten, not yet compiled/tested |
 | 5 | Logs and crashes | In progress (recording and live UI exist in core, panel is wired in) |
-| 6 | App database inspector (Room/SQLDelight/raw SQLite, live) | In progress (multiple tables, rows, attachable inspector API, refresh, and per-table search are live; framework adapters remain) |
+| 6 | App database inspector (Room/SQLDelight/raw SQLite, live) | Multiple tables, rows, attachable inspector API, refresh, per-table search, and a `heimdall-database-sqlite` adapter covering Room/SQLDelight/raw SQLite by file path are live; not yet run against a real Room/SQLDelight database |
 | 7 | Flags: persist overrides, restart button | In progress (typed overrides now persist in Heimdall's own database; restart action remains) |
 | 8 | UI: icon rail, overview, network details, database rows, searchable storage/logs, sessions | In progress (historical session browsing is wired; device verification remains) |
 | 9 | Showing the overlay in a real app (Android auto-inject, iOS window + shake) | Not started |

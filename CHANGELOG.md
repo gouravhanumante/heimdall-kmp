@@ -100,6 +100,11 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   raw SQLite adapter modules remain separate work.
 
 ### Added
+- Added optional `heimdall-database-sqlite`: `SqliteFileInspector`, a `DatabaseInspector` that
+  reads any on-disk SQLite file by path — covers Room, SQLDelight, and raw SQLite databases with
+  one adapter, since all three are a plain SQLite file underneath. Opens its own read-only
+  connection; the ad-hoc query box only accepts `SELECT`/`PRAGMA`/`EXPLAIN`/`WITH`. Not usable
+  with an in-memory (`:memory:`) database. See `docs/plugins/database.md`.
 - `heimdall-core`: `ShakeDetector` (shared threshold/debounce logic) and `AndroidShakeListener`
   (Android accelerometer wiring). iOS listener is a stub — see `docs/TODO.md`.
 - `heimdall-ui`: `HeimdallOverlay` composable — wrap a screen's root content once to get the
