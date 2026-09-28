@@ -2,9 +2,12 @@
 
 Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
 
-- **iOS shake + overlay host unimplemented.** `IosShakeListener` is a stub. Lands with chunk 9
-  (overlay hosts), together with deciding where the iOS overlay lives
-  (`docs/architecture.md`, decision 1).
+- **Bubble goes behind dialogs and sheets.** `HeimdallOverlay` wraps the root composable, so
+  Compose `Dialog`/`ModalBottomSheet`/`Popup` (separate windows) and native screens draw over it.
+  Considered: an Android decor-view host (tried, removed — those windows still sit above the decor
+  view); a per-window injector or `TYPE_APPLICATION_PANEL` window (not tried). On iOS a separate
+  `UIWindow` covers this and is kept as a sample-only opt-in
+  (`MainViewControllerWithNativeOverlayWindow()`), not yet run or extracted into the SDK.
 - **Back handling is platform-hosted.** Android's sample uses `BackHandler` to close the SDK
   inspector first and then return from sample screens; consuming apps must connect their own
   navigation back callback to `HeimdallOverlayController.handleBack()`.
@@ -12,23 +15,27 @@ Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
   new launch starts at the default position.
 - **No no-op / release-safety mechanism.** See `docs/release-builds.md`. Must exist before any
   consumer is told it's safe to ship with Heimdall in the dependency graph.
-- **Database, flags UI and persistence, logs/crash capture** (chunks 5–7) are still not complete
-  even though the core stores and panel wiring are now in progress. `FlagStore` has overrides and
-  the panel can toggle them, but they remain in-memory only and are not durable across restart.
+- **Database, logs/crash capture** (chunks 5–7) still need richer adapters and detail interactions.
+  Flag overrides are durable with boolean, text, number, and per-flag reset controls.
 - **Database framework adapters.** `DatabaseInspector` is the shared attach/refresh contract, but
   Room, SQLDelight, and raw SQLite adapter modules still need to be implemented separately.
-- **Overlay-window prototype (`docs/architecture.md`, decision 1) not attempted.** The bubble
-  lives inside the wrapped root composable, so native sheets/screens outside it hide the bubble.
+- **Firebase/remote-config flag adapter.** Android Firebase Remote Config discovery is implemented;
+  iOS Firebase adapter parity and explicit type metadata for ambiguous string values remain.
 - **`Heimdall.install()` isn't enforced.** Recording before it throws at runtime
   (`HeimdallDatabase.requireConnection()`), not at compile time.
 - **Keychain: only generic-password items.** Internet passwords, keys and certificates aren't
   listed. Most apps and Keychain wrappers use generic passwords.
 - **Automatic Compose performance instrumentation.** `Heimdall.measure(...)` reports explicit
-  durations, but recomposition counts, frame jank, and automatic screen render timing still need
-  a Compose-specific integration with defined overhead limits. Overview now shows these as
-  `Unavailable` rather than guessing values.
+  durations, and Android/iOS frame timing is implemented. Recomposition counts and automatic
+  screen render timing still need a Compose-specific integration with defined overhead limits.
+- **Runtime Compose recomposition counters.** Official compiler reports are enabled for `heimdall-ui`
+  and the shared sample under `build/compose-compiler`; those are static stability facts, not
+  runtime counts. A versioned optional compiler instrumentation plugin is still needed for strict
+  runtime recomposition measurements.
 - **Sample image requests are not yet routed through HeimdallKtor.** Coil loads them through its
   own configured fetcher, while the sample API/feed calls use the Heimdall-installed Ktor client.
 - **Database search is currently snapshot filtering.** The UI filters loaded table rows on
   `Dispatchers.Default`, but true million-row search needs a paged, read-only query contract so
   filtering happens in the app database rather than after materializing every row.
+- **Session date formatting.** The Sessions view currently shows epoch milliseconds; a localized
+  platform date formatter can improve readability later without changing session semantics.

@@ -71,8 +71,30 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
 - Sample controls now use a shared Heimdall Material theme with horn-gold primary actions,
   watchman-blue secondary accents, consistent outlines, and rounded input/button shapes.
 - Added offline Health rules and an Overview Health table. Measured crashes, network errors, and
-  slow operations are reported with confidence; unsupported Compose metrics are explicitly marked
-  `Unavailable`.
+  slow operations are reported with confidence; unsupported Compose metrics are omitted.
+- Flag overrides now persist as typed values in Heimdall's own SQLite database and restore during
+  installation. Official Compose compiler reports/metrics are enabled for `heimdall-ui` and the
+  shared sample; runtime recomposition counters remain unavailable until an optional instrumentation
+  plugin exists.
+- Android sample now reports live Choreographer frame intervals to Overview/Health; frame samples
+  stay in memory and are not persisted.
+- Added a Sessions view for historical network/log/crash/event browsing while keeping database,
+  storage, flags, and frame state live-only.
+- Flags now support persisted text and number editors plus per-flag reset actions in addition to
+  boolean toggles.
+- Added the one-time `FlagCatalog` attachment contract so provider adapters can discover all known
+  flag keys and still receive Heimdall overrides without per-key registration code.
+- Added optional Android `heimdall-flags-firebase`: `FirebaseRemoteConfig.attachToHeimdall()`
+  discovers keys and returns an override-aware provider without per-key definitions.
+- Flags expose an optional host restart handler; the panel shows Restart app only when configured.
+- iOS frame intervals now use `CADisplayLink` after `Heimdall.install(...)`; iOS shake/overlay host
+  forwarding is now implemented through the sample UIKit responder host. The iOS sample defaults to
+  the shared `HeimdallOverlay`; `MainViewControllerWithNativeOverlayWindow()` opts into a separate
+  always-on-top `UIWindow` with passthrough hit testing.
+- The shared `HeimdallOverlay` wrapper is the overlay on both platforms. Known limitation: Compose
+  `Dialog`/`ModalBottomSheet`/`Popup` draw over the bubble.
+- `Heimdall.install(...)` now owns Android uncaught-crash capture and frame-monitor startup; sample
+  integration no longer duplicates those hooks.
 - Added `DatabaseInspector`, `DatabaseStore.attach(...)`, and refresh-on-open behavior for app
   database adapters. Heimdall still never owns or migrates the app database; Room, SQLDelight, and
   raw SQLite adapter modules remain separate work.

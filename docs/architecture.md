@@ -60,6 +60,9 @@ in-memory `mutableMapOf`/`StateFlow` state only (see their source).
 
 Different per collector, decided per docs.instructions.md before building each one:
 - **Overlay**: consumer wraps their root composable in `HeimdallOverlay { }` (explicit, no magic).
+- **Platform hooks**: `Heimdall.install(context)` installs Android uncaught-crash capture and live
+  Choreographer frame monitoring automatically. The UI host still owns shake-to-recall because core
+  must not depend on the UI module.
 - **Screen attribution**: consumer calls `Heimdall.setCurrentScreen(...)`, uses
   `Heimdall.screen("Name") { ... }` for a scoped block, or passes an explicit screen name to
   `Heimdall.event(...)`. Heimdall does not infer screen ownership automatically.
@@ -73,14 +76,18 @@ Different per collector, decided per docs.instructions.md before building each o
   Heimdall never creates or migrates it. The `DatabaseInspector` contract exposes a bounded
   snapshot and read-only query function; `DatabaseStore.attach(...)` registers it and refreshes
   it when the Database tab opens.
-- **Flags** (not yet built): a decorator around the consumer's existing flag/entitlement
-  provider, not a replacement — see the design discussion that produced this project.
+- **Flags**: a decorator around the consumer's existing flag/entitlement provider, not a
+  replacement. Heimdall cannot enumerate arbitrary provider keys safely, so consumers register
+  `FlagDefinition` values for the flags they want to inspect, or attach a `FlagCatalog` adapter once
+  when the provider can enumerate its keys. An optional restart handler enables the panel's Restart
+  app action. The optional `heimdall-flags-firebase` Android module provides
+  `FirebaseRemoteConfig.attachToHeimdall()` for automatic key discovery and override-aware reads.
 
 ## Open decisions
 
 ### 1. Where the overlay lives, especially on iOS
 
-Two options, neither implemented yet:
+Two options:
 - **(a) Wrap the root composable.** What `HeimdallOverlay` does today. Simple, matches
   kmp-inspector's approach. Known limitation: the bubble is hidden behind native sheets/screens
   pushed outside that composable.
@@ -89,9 +96,10 @@ Two options, neither implemented yet:
   a second `UIWindow` at `.alert` level.) Stays visible over everything, but touch-passthrough
   outside the bubble's own bounds needs to be proven before relying on it.
 
-Milestone 1 shipped (a) for Android, since it was enough to prove the bubble/panel/shake
-mechanics. (b) is unproven on either platform — prototype before committing collector work on
-top of either choice, since collectors don't care which one wins but the bubble/panel code does.
+Decision: (a) is the default on both platforms. An Android decor-view host was tried and removed —
+it does not cover Compose `Dialog`/`ModalBottomSheet`/`Popup`, which open in their own windows, so
+it added a native layer without fixing the gap. iOS keeps (b) as an opt-in in the sample
+(`MainViewControllerWithNativeOverlayWindow()`), not yet run.
 
 ### 2. Reuse vs. rewrite
 

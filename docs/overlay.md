@@ -19,8 +19,18 @@ Implemented in `heimdall-ui` (`HeimdallOverlay`, `HeimdallBubbleLayer`, `Heimdal
 - `ShakeDetector` (in `heimdall-core`) takes per-axis G-force samples and calls `onShake()` when
   the magnitude exceeds `DEFAULT_THRESHOLD_G = 2.7g` above resting gravity, at most once per
   `DEFAULT_MIN_INTERVAL_MS = 1000ms`.
-- `AndroidShakeListener` feeds it from `Sensor.TYPE_ACCELEROMETER`. iOS has no listener yet.
+- `AndroidShakeListener` feeds it from `Sensor.TYPE_ACCELEROMETER`. `IosShakeListener` is fed by
+  the host view controller's `motionEnded` (see `ShakeHostViewController` in the iOS sample).
 - The host calls `HeimdallOverlayController.recall()` from the shake callback.
+
+## Where the overlay lives
+
+- Default, both platforms: wrap the app's root composable in `HeimdallOverlay { ... }`.
+- Limitation: anything that opens its own window — Compose `Dialog`, `ModalBottomSheet`, `Popup`,
+  or native screens outside the wrapped composable — draws over the bubble.
+- iOS opt-in: the sample's `MainViewControllerWithNativeOverlayWindow()` puts the overlay in a
+  second `UIWindow` above alerts (`UIWindowLevelAlert + 1`) and passes touches outside the
+  bubble/panel through (`HeimdallOverlayController.acceptsOverlayTouch`). Sample-only, not run.
 
 ## Panel
 
@@ -38,15 +48,23 @@ Implemented in `heimdall-ui` (`HeimdallOverlay`, `HeimdallBubbleLayer`, `Heimdal
   code/data surfaces keep their structured developer-tool contrast in either mode.
 - Overview shows current-session counts, recent activity, and slow measured operations. Timeline
   events remain available as activity data rather than a primary navigation destination.
-- Overview also shows a Health table. Crashes, network errors, and explicit slow operations are
-  measured; recomposition, frame-jank, and component-health metrics are labeled `Unavailable` until
-  their optional instrumentation exists.
+- Overview also shows a Health table containing only currently measured crashes, network errors,
+  and explicit slow operations. Compose recomposition, frame-jank, and component-health metrics are
+  not shown until their instrumentation exists.
+- Flags support search, boolean toggles, text/number override editors, global reset, and per-flag
+  reset.
+- On Android, the sample also reports live frame intervals from `Choreographer`; slow-frame counts
+  and the worst measured interval appear in Overview and Health. No frame history is persisted.
+- Android crash capture and frame monitoring are installed by `Heimdall.install(...)`; the sample
+  only supplies the platform shake listener needed to recall the UI bubble.
 - Network details render request and response headers/bodies in selectable monospace code blocks,
   with a copy-cURL action.
 - Database first shows a table list, then drills into one selected table with column headers,
   horizontally scrollable cells, and per-table search. Storage renders a key/value table; Logs and
   Crashes render contained severity records. Collection views provide local search where the data
   set can grow large.
+- Sessions lists current and previous runs. Selecting an older session switches Network, Logs,
+  Crashes, and Timeline to historical data; Database, Storage, and Flags remain live-only.
 - Shared inspector tokens live in `HeimdallDesign`: panel/rail/surface colors, status colors,
   corner radii, code typography, and label sizes are reused across these views.
   Network, storage, database metadata, logs, crashes, and registered flags render published live
