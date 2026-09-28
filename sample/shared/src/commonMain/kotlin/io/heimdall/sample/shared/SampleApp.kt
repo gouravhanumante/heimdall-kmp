@@ -270,6 +270,8 @@ private class SampleDatabaseInspector : DatabaseInspector {
     init {
         connection.execSQL("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL, status TEXT NOT NULL)")
         connection.execSQL("INSERT INTO users (id, name, status) VALUES (1, 'Ada', 'active')")
+        connection.execSQL("CREATE TABLE profiles (user_id INTEGER PRIMARY KEY, city TEXT NOT NULL, plan TEXT NOT NULL)")
+        connection.execSQL("INSERT INTO profiles (user_id, city, plan) VALUES (1, 'London', 'pro')")
     }
 
     override val databaseName: String = "sample.db"
@@ -297,7 +299,10 @@ private class SampleDatabaseInspector : DatabaseInspector {
         }
     }
 
-    override fun snapshot(): DatabaseSnapshot = DatabaseSnapshot(databaseName, listOf(readUsers()))
+    override fun snapshot(): DatabaseSnapshot = DatabaseSnapshot(
+        databaseName,
+        listOf(readUsers(), readProfiles()),
+    )
 
     override fun query(sql: String): DatabaseTable = readUsers()
 
@@ -312,6 +317,23 @@ private class SampleDatabaseInspector : DatabaseInspector {
                     add(listOf(statement.getLong(0).toString(), statement.getText(1), statement.getText(2)))
                 }
             },
+            )
+        } finally {
+            statement.close()
+        }
+    }
+
+    private fun readProfiles(): DatabaseTable {
+        val statement = connection.prepare("SELECT user_id, city, plan FROM profiles ORDER BY user_id")
+        return try {
+            DatabaseTable(
+                name = "profiles",
+                columns = listOf("user_id", "city", "plan"),
+                rows = buildList {
+                    while (statement.step()) {
+                        add(listOf(statement.getLong(0).toString(), statement.getText(1), statement.getText(2)))
+                    }
+                },
             )
         } finally {
             statement.close()

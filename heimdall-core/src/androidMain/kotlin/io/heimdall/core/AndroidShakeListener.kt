@@ -29,7 +29,7 @@ class AndroidShakeListener(
 
     fun start() {
         if (accelerometer == null) return
-        sensorManager.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
+        sensorManager.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_GAME)
     }
 
     fun stop() {
