@@ -3,32 +3,37 @@ package io.heimdall.sample
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.remember
 import io.heimdall.core.AndroidShakeListener
 import io.heimdall.sample.shared.SampleApp
 import io.heimdall.ui.HeimdallOverlayController
 
 class MainActivity : ComponentActivity() {
 
+    private lateinit var controller: HeimdallOverlayController
     private lateinit var shakeListener: AndroidShakeListener
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            val controller = remember { HeimdallOverlayController() }
-            shakeListener = remember { AndroidShakeListener(applicationContext) { controller.recall() } }
 
+        controller = HeimdallOverlayController()
+        shakeListener = AndroidShakeListener(applicationContext) { controller.recall() }
+
+        setContent {
             SampleApp(overlayController = controller)
         }
     }
 
     override fun onResume() {
         super.onResume()
-        shakeListener.start()
+        if (::shakeListener.isInitialized) {
+            shakeListener.start()
+        }
     }
 
     override fun onPause() {
-        shakeListener.stop()
+        if (::shakeListener.isInitialized) {
+            shakeListener.stop()
+        }
         super.onPause()
     }
 }

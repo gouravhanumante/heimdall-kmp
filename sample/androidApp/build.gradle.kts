@@ -23,6 +23,7 @@ android {
 
 dependencies {
     implementation(projects.sample.shared)
+    implementation(projects.heimdallStorage)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(compose.material3)
