@@ -31,6 +31,7 @@ dependencyResolutionManagement {
 
 include(":heimdall-core")
 include(":heimdall-ui")
+include(":heimdall-network-ktor")
 
 include(":sample:shared")
 include(":sample:androidApp")
