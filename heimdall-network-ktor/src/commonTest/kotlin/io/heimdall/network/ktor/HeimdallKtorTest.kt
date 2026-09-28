@@ -13,12 +13,18 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class HeimdallKtorTest {
+
+    @BeforeTest
+    fun setUp() {
+        Heimdall.installInMemory() // no-op after the first test in the process, which is fine
+    }
 
     @AfterTest
     fun tearDown() {
@@ -45,7 +51,7 @@ class HeimdallKtorTest {
             header("Authorization", "Bearer secret-token")
         }
 
-        val record = Heimdall.network.snapshot().single()
+        val record = Heimdall.network.current.value.single()
         assertEquals("GET", record.method)
         assertEquals("https://api.example.com/products", record.url)
         assertEquals(200, record.statusCode)
@@ -60,7 +66,7 @@ class HeimdallKtorTest {
             header("Authorization", "Bearer secret-token")
         }
 
-        val record = Heimdall.network.snapshot().single()
+        val record = Heimdall.network.current.value.single()
         assertEquals(REDACTED_VALUE, record.requestHeaders["Authorization"])
     }
 
@@ -70,7 +76,7 @@ class HeimdallKtorTest {
 
         client.get("https://api.example.com/products/42") // response body never read by the caller
 
-        val record = Heimdall.network.snapshot().single()
+        val record = Heimdall.network.current.value.single()
         assertEquals("""{"id":42}""", record.responseBody)
     }
 
@@ -92,7 +98,7 @@ class HeimdallKtorTest {
 
         client.get("https://api.example.com/avatar.png")
 
-        val record = Heimdall.network.snapshot().single()
+        val record = Heimdall.network.current.value.single()
         assertNull(record.responseBody)
     }
 
@@ -102,7 +108,7 @@ class HeimdallKtorTest {
 
         client.get("https://api.example.com/products")
 
-        val record = Heimdall.network.snapshot().single()
+        val record = Heimdall.network.current.value.single()
         assertTrue(record.isError)
     }
 
@@ -113,7 +119,7 @@ class HeimdallKtorTest {
 
         client.get("https://api.example.com/products")
 
-        assertTrue(Heimdall.network.snapshot().isEmpty())
+        assertTrue(Heimdall.network.current.value.isEmpty())
     }
 
     @Test
@@ -127,7 +133,7 @@ class HeimdallKtorTest {
 
         runCatching { client.get("https://api.example.com/products") }
 
-        val record = Heimdall.network.snapshot().single()
+        val record = Heimdall.network.current.value.single()
         assertNull(record.statusCode)
         assertEquals("Connection reset", record.error)
         assertTrue(record.isError)

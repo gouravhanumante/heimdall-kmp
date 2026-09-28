@@ -4,6 +4,10 @@ plugins {
 }
 
 kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     iosArm64()
     iosSimulatorArm64()
 
@@ -17,9 +21,16 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(libs.kotlinx.coroutines.core)
+            api(libs.androidx.sqlite.bundled)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+        }
+        getByName("androidHostTest").dependencies {
+            // The Android target's own bundled driver ships a device .so, unusable from the
+            // plain JVM these tests actually run on — this pulls the real macOS/Linux native lib.
+            implementation(libs.androidx.sqlite.bundled.jvm)
         }
     }
 }
