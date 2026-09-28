@@ -1,9 +1,10 @@
 package io.heimdall.network.ktor
 
-/** Header names masked wherever a request/response is recorded — these tend to be the ones
- * that end up pasted into a bug report or a chat if left readable. Override via
- * [HeimdallKtorConfig.redactedHeaders]; pass an empty set to record everything verbatim. */
-val defaultRedactedHeaders = setOf(
+/** Not applied by default (see [HeimdallKtorConfig.redactedHeaders]) — Heimdall's capture is a
+ * local debug store meant to be read and copy-pasted as a working `curl` command, so a header
+ * redacted here would need to be typed back in by hand. Offered as a named opt-in for apps that
+ * want it: `redactedHeaders = commonSensitiveHeaders`. */
+val commonSensitiveHeaders = setOf(
     "Authorization",
     "Cookie",
     "Set-Cookie",

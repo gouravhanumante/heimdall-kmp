@@ -59,8 +59,25 @@ class HeimdallKtorTest {
     }
 
     @Test
-    fun `the Authorization header is redacted by default`() = runTest {
+    fun `the Authorization header is kept as-is by default, so a captured call is a working curl`() = runTest {
         val client = mockClient()
+
+        client.get("https://api.example.com/products") {
+            header("Authorization", "Bearer secret-token")
+        }
+
+        val record = Heimdall.network.current.value.single()
+        assertEquals("Bearer secret-token", record.requestHeaders["Authorization"])
+    }
+
+    @Test
+    fun `redaction is available as an opt-in`() = runTest {
+        val client = HttpClient(MockEngine) {
+            install(HeimdallKtor) { redactedHeaders = commonSensitiveHeaders }
+            engine {
+                addHandler { respond(content = """{"ok":true}""", headers = headersOf(HttpHeaders.ContentType, "application/json")) }
+            }
+        }
 
         client.get("https://api.example.com/products") {
             header("Authorization", "Bearer secret-token")
