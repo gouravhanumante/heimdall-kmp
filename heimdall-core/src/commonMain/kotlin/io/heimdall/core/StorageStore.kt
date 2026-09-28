@@ -22,6 +22,7 @@ class StorageStore internal constructor() {
     // threads (a SharedPreferences listener, a DataStore flow) can't lose each other's writes.
     private val _current = MutableStateFlow<Map<String, StorageSnapshot>>(emptyMap())
     private val writers = MutableStateFlow<Map<String, StorageWriter>>(emptyMap())
+    private val refreshers = MutableStateFlow<List<() -> Unit>>(emptyList())
 
     /** Every attached source, keyed by [StorageSnapshot.sourceName], updated live. */
     val current: StateFlow<Map<String, StorageSnapshot>> = _current
@@ -30,6 +31,16 @@ class StorageStore internal constructor() {
         if (!Heimdall.enabled) return
         if (writer != null) writers.update { it + (snapshot.sourceName to writer) }
         _current.update { it + (snapshot.sourceName to snapshot) }
+    }
+
+    /** For collectors that must re-scan to find new sources (new prefs files, keychain items). */
+    fun addRefresher(refresh: () -> Unit) {
+        refreshers.update { it + refresh }
+    }
+
+    /** Called by the panel when the Storage tab opens. */
+    fun refresh() {
+        refreshers.value.forEach { it() }
     }
 
     fun snapshot(): List<StorageSnapshot> = _current.value.values.toList()

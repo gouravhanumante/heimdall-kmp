@@ -6,31 +6,62 @@ import io.heimdall.core.Heimdall
 import io.heimdall.core.StorageSnapshot
 import io.heimdall.core.StorageWriter
 import java.io.File
+import java.security.KeyStore
+
+/** One call for everything Android can find on its own: SharedPreferences and Keystore aliases. */
+fun Heimdall.discoverStorage(context: Context) {
+    discoverAndroidPreferences(context)
+    discoverAndroidKeystore()
+}
 
 /**
- * Finds every SharedPreferences file the app has already created (by listing `shared_prefs/`,
- * the only way to enumerate them — Android has no "list all preference files" API) and publishes
- * each one, live, into `Heimdall.storage`. No name has to be known up front, unlike DataStore:
- * `getSharedPreferences(name, MODE_PRIVATE)` is safe to call any number of times for the same
- * file, so there's no single-writer conflict to avoid here.
- *
- * Call once, after `Heimdall.install(context)`. Files created *after* this call are not picked
- * up — see docs/plugins/storage.md.
+ * Finds every SharedPreferences file by listing `shared_prefs/` (Android has no API to list them)
+ * and publishes each one, live. Re-scans when the Storage tab opens, so files created later are
+ * picked up too.
  */
 fun Heimdall.discoverAndroidPreferences(context: Context) {
-    val prefsDir = File(context.applicationInfo.dataDir, "shared_prefs")
-    val prefsFiles = prefsDir.listFiles { file -> file.extension == "xml" } ?: return
+    val appContext = context.applicationContext
+    val attached = mutableSetOf<String>()
+    // SharedPreferences holds change listeners weakly; without these strong references they get
+    // garbage-collected and live updates silently stop.
+    val listeners = mutableListOf<SharedPreferences.OnSharedPreferenceChangeListener>()
 
-    for (file in prefsFiles) {
-        val name = file.nameWithoutExtension
-        val prefs = context.getSharedPreferences(name, Context.MODE_PRIVATE)
-        publishSnapshot(name, prefs)
-
-        val listener = SharedPreferences.OnSharedPreferenceChangeListener { changed, _ -> publishSnapshot(name, changed) }
-        prefs.registerOnSharedPreferenceChangeListener(listener)
-        // Deliberately never unregistered: this listener's lifetime is meant to match the app's
-        // own, same as the SharedPreferences instance itself — see docs/plugins/storage.md.
+    fun scan() {
+        synchronized(attached) {
+            val prefsDir = File(appContext.applicationInfo.dataDir, "shared_prefs")
+            val prefsFiles = prefsDir.listFiles { file -> file.extension == "xml" } ?: return
+            for (file in prefsFiles) {
+                val name = file.nameWithoutExtension
+                if (!attached.add(name)) continue
+                val prefs = appContext.getSharedPreferences(name, Context.MODE_PRIVATE)
+                publishSnapshot(name, prefs)
+                val listener = SharedPreferences.OnSharedPreferenceChangeListener { changed, _ -> publishSnapshot(name, changed) }
+                listeners += listener
+                prefs.registerOnSharedPreferenceChangeListener(listener)
+            }
+        }
     }
+
+    scan()
+    storage.addRefresher(::scan)
+}
+
+/** Lists Android Keystore aliases, read-only. Key material in the Keystore can never be read back
+ * by design, so each entry shows only the key's algorithm. */
+fun Heimdall.discoverAndroidKeystore() {
+    fun publish() {
+        val entries = runCatching {
+            val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+            keyStore.aliases().toList().associateWith { alias ->
+                val algorithm = runCatching { keyStore.getKey(alias, null)?.algorithm }.getOrNull()
+                "${algorithm ?: "unknown"} key — material not readable"
+            }
+        }.getOrDefault(emptyMap())
+        storage.publish(StorageSnapshot(sourceName = "Android Keystore", entries = entries))
+    }
+
+    publish()
+    storage.addRefresher(::publish)
 }
 
 private fun Heimdall.publishSnapshot(name: String, prefs: SharedPreferences) {

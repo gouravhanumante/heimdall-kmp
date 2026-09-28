@@ -3,55 +3,53 @@
 Shows the app's key/value storage **live** — current values only, never history, never split
 by session (see `docs/architecture.md`, "History vs. live state").
 
+## Setup
+
+| Platform | Call once, after `Heimdall.install(...)` | Finds |
+|---|---|---|
+| Android | `Heimdall.discoverStorage(context)` | SharedPreferences, Android Keystore |
+| iOS | `Heimdall.discoverStorage(appGroupSuiteNames = listOf(...))` | UserDefaults (standard + suites), Keychain |
+| Both | `Heimdall.attachDataStore(dataStore, name, scope)` — once per DataStore | That DataStore |
+
+Sources that need scanning (SharedPreferences files, UserDefaults suites, Keychain, Keystore) are
+re-scanned whenever the Storage tab opens (`StorageStore.refresh()`), so things created after
+startup appear too. Values of already-attached sources update live.
+
 ## Sources
 
-| Source | Platform | How it's attached | Editable from the panel |
-|---|---|---|---|
-| `DataStore<Preferences>` | Android + iOS | **One line**: `Heimdall.attachDataStore(dataStore, name, scope)` | Yes — written as a string key |
-| SharedPreferences | Android | Auto: `Heimdall.discoverAndroidPreferences(context)` | Yes — see "type safety" |
-| `NSUserDefaults.standardUserDefaults` | iOS | Auto: `Heimdall.discoverStandardUserDefaults()` | Text values only |
-| Custom `NSUserDefaults(suiteName:)` | iOS | Not supported | — |
-| Keychain / Android Keystore | both | Not supported yet — see `docs/TODO.md` | — |
+| Source | Editable | Notes |
+|---|---|---|
+| DataStore | Yes | Needs the one line above — see below |
+| SharedPreferences | Yes | Every file in `shared_prefs/` |
+| Android Keystore | No | Aliases and key algorithm only; key material can't be read by design |
+| UserDefaults | Text values only | App's own keys only (`persistentDomainForName`), no Apple system keys. Suites found by listing `Library/Preferences/*.plist`; app-group suites must be passed in |
+| Keychain | Yes (text values) | Generic-password items only, shown as `service / account`. Non-text values show as a byte count |
 
 ## Why DataStore needs one line
 
 DataStore allows only one open instance per file in a process. If Heimdall opened the app's
 file itself, the app would crash with "There are multiple DataStores active for the same file".
-So the app passes in the instance it already has. Example (Koin):
+So the app passes in the instance it already has, e.g. from Koin:
 
 ```kotlin
-single<DataStore<Preferences>> { PreferenceDataStoreFactory.createWithPath(scope, produceFile) }
-    .also { /* after it's created */ }
-// then, once, e.g. in Application.onCreate:
-Heimdall.attachDataStore(get(), name = "auth", scope = appScope)
+Heimdall.attachDataStore(get<DataStore<Preferences>>(), name = "auth", scope = appScope)
 ```
 
 `scope` must live as long as the DataStore; panel edits are launched on it.
 
-## Auto-discovery limits
-
-- **SharedPreferences**: found by listing the `shared_prefs/` directory once, when
-  `discoverAndroidPreferences` is called. Files created after that call are not picked up.
-- **UserDefaults**: only the standard suite; iOS has no API to list suite names.
-- Change listeners are never unregistered — they live as long as the app, like the stores.
-
 ## Type safety when editing
 
-The panel edits through a text field.
-- **SharedPreferences** keeps the key's original type: a `Boolean` key only accepts
-  `true`/`false`, an `Int` key only an integer, and so on. An unparseable value is rejected
-  (`StorageWriter.write` returns `false`) instead of being written as the wrong type, which would
-  make the app's own `getBoolean` throw. `Set<String>` values can't be edited.
-- **UserDefaults**: only keys whose current value is a string can be edited. Foundation stores
-  Bool and Int both as `NSNumber`, so the original type can't be recovered reliably.
-- **DataStore**: same rule as SharedPreferences — the write mirrors the existing key's type
-  (`Boolean`/`Int`/`Long`/`Float`/`Double`/`String`), and an unparseable value is rejected.
-  DataStore keys compare by name only, so writing through the wrong key type would silently
-  replace the value's type and break the app's own typed read. `Set<String>`/`ByteArray` values
-  can't be edited.
+The panel edits through a text field, so writes must not change a value's type — the app's own
+typed read (`getBoolean`, `prefs[intPreferencesKey(..)]`) would then throw.
+- **DataStore / SharedPreferences**: the write mirrors the existing value's type
+  (`Boolean`/`Int`/`Long`/`Float`/`Double`/`String`); a value that doesn't parse is rejected
+  (`StorageWriter.write` returns `false`). `Set<String>`/`ByteArray` can't be edited.
+- **UserDefaults**: only string values can be edited. Foundation stores Bool and Int both as
+  `NSNumber`, so the original type can't be recovered.
+- **Keychain**: values are written back as UTF-8 text.
 
 ## Verification status
 
-`attachDataStore`: 5 JVM tests (`DataStoreAttachmentTest`), including type preservation — the two
-type tests were confirmed to fail against a string-only write. SharedPreferences and UserDefaults
-discovery: compile only, not run on a device.
+`attachDataStore`: 5 JVM tests (`DataStoreAttachmentTest`); the two type tests were confirmed to
+fail against a string-only write. SharedPreferences, Keystore, UserDefaults and Keychain
+discovery: written, not yet compiled by me or run on a device.

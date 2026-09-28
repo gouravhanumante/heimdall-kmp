@@ -4,45 +4,75 @@ import io.heimdall.core.Heimdall
 import io.heimdall.core.StorageSnapshot
 import io.heimdall.core.StorageWriter
 import kotlinx.cinterop.ExperimentalForeignApi
+import platform.Foundation.NSBundle
+import platform.Foundation.NSFileManager
+import platform.Foundation.NSLibraryDirectory
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
+import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSUserDefaults
 import platform.Foundation.NSUserDefaultsDidChangeNotification
+import platform.Foundation.NSUserDomainMask
+
+/** One call for everything iOS can find on its own: UserDefaults (standard + suites) and Keychain. */
+fun Heimdall.discoverStorage(appGroupSuiteNames: List<String> = emptyList()) {
+    discoverUserDefaults(appGroupSuiteNames)
+    discoverKeychain()
+}
 
 /**
- * Publishes the app's standard `NSUserDefaults` suite into `Heimdall.storage`, live. A
- * custom-named suite (`NSUserDefaults(suiteName:)`) isn't auto-discovered — iOS has no API to
- * enumerate suite names that exist on disk, the same limitation DataStore has on Android, just
- * for a different reason. See docs/TODO.md.
+ * Publishes the app's standard UserDefaults plus every custom suite, live. Suites are found by
+ * listing `Library/Preferences/*.plist`; app-group suites live in the group container instead, so
+ * pass their names in [appGroupSuiteNames]. Re-scans when the Storage tab opens.
  */
-@OptIn(ExperimentalForeignApi::class)
-fun Heimdall.discoverStandardUserDefaults() {
-    val defaults = NSUserDefaults.standardUserDefaults
+fun Heimdall.discoverUserDefaults(appGroupSuiteNames: List<String> = emptyList()) {
+    val bundleId = NSBundle.mainBundle.bundleIdentifier ?: return
+    val attached = mutableSetOf<String>()
 
-    publishUserDefaultsSnapshot(defaults)
+    fun attach(domain: String, defaults: NSUserDefaults, sourceName: String) {
+        if (!attached.add(domain)) return
+        publishDomain(domain, defaults, sourceName)
+        NSNotificationCenter.defaultCenter.addObserverForName(
+            name = NSUserDefaultsDidChangeNotification,
+            `object` = defaults,
+            queue = NSOperationQueue.mainQueue,
+        ) { _ -> publishDomain(domain, defaults, sourceName) }
+    }
 
-    NSNotificationCenter.defaultCenter.addObserverForName(
-        name = NSUserDefaultsDidChangeNotification,
-        `object` = defaults,
-        queue = NSOperationQueue.mainQueue,
-    ) { _ -> publishUserDefaultsSnapshot(defaults) }
-    // Deliberately never removed, matching the SharedPreferences listener on Android — see
-    // docs/plugins/storage.md.
+    fun scan() {
+        attach(bundleId, NSUserDefaults.standardUserDefaults, "UserDefaults")
+        val suites = (listPreferencesSuites() - bundleId) + appGroupSuiteNames
+        for (suite in suites) {
+            val defaults = NSUserDefaults(suiteName = suite)
+            attach(suite, defaults, "UserDefaults: $suite")
+        }
+    }
+
+    scan()
+    storage.addRefresher(::scan)
 }
 
 @OptIn(ExperimentalForeignApi::class)
-private fun Heimdall.publishUserDefaultsSnapshot(defaults: NSUserDefaults) {
-    val raw = defaults.dictionaryRepresentation()
+private fun listPreferencesSuites(): Set<String> {
+    val library = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, true)
+        .firstOrNull() as? String ?: return emptySet()
+    val files = NSFileManager.defaultManager.contentsOfDirectoryAtPath("$library/Preferences", error = null)
+        ?: return emptySet()
+    return files.mapNotNull { (it as? String)?.takeIf { name -> name.endsWith(".plist") }?.removeSuffix(".plist") }.toSet()
+}
+
+/** Reads only [domain]'s own keys. `dictionaryRepresentation()` would also include Apple's global
+ * keys (`AppleLanguages`, `NS…`), which aren't the app's data. */
+private fun Heimdall.publishDomain(domain: String, defaults: NSUserDefaults, sourceName: String) {
+    val raw = defaults.persistentDomainForName(domain).orEmpty()
     val entries = raw.entries.associate { (key, value) -> key.toString() to value.toString() }
     storage.publish(
-        StorageSnapshot(sourceName = "NSUserDefaults.standard", entries = entries),
-        // Text values only: Foundation boxes Bool/Int/Float/Double all as NSNumber, and there is
-        // no reliable way to tell a stored Bool apart from a stored Int from the boxed value
-        // alone — guessing wrong would silently turn a Bool the app reads with
-        // `boolForKey:` into a different type. Rejecting is safer than corrupting it; see
-        // docs/plugins/storage.md.
+        StorageSnapshot(sourceName = sourceName, entries = entries),
+        // Text values only: Foundation boxes Bool and Int both as NSNumber, so the original type
+        // can't be recovered, and guessing wrong would break the app's own typed read.
         writer = StorageWriter { key, value ->
-            val isText = defaults.objectForKey(key) is platform.Foundation.NSString
+            // Kotlin/Native bridges a stored NSString to kotlin.String, so check String, not NSString.
+            val isText = defaults.objectForKey(key) is String
             if (isText) defaults.setObject(value, forKey = key)
             isText
         },

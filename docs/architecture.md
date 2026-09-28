@@ -10,7 +10,7 @@ graph TD
 ```
 
 - **`heimdall-core`**: no UI, no Compose dependency. Shake detection (`ShakeDetector` shared +
-  `AndroidShakeListener`/`IosShakeListener` per platform), `OverlayState`, and Heimdall's own
+  `AndroidShakeListener`/`IosShakeListener` per platform) and Heimdall's own
   on-disk store (`HeimdallDatabase`, an `androidx.sqlite` `BundledSQLiteDriver` connection guarded
   by a mutex) holding `NetworkStore`/`LogStore`/`CrashStore`/`StorageStore`/`DatabaseStore`/
   `FlagStore`, all reachable through the `Heimdall` singleton. Kept UI-free so a future consuming

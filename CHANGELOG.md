@@ -15,16 +15,26 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   had a fatal crash is flagged (`Session.crashed`).
 - `NetworkStore`/`LogStore`/`CrashStore` now expose `current: StateFlow<List<_>>` (the live
   current session, newest-first) instead of a `snapshot()` function.
+- `heimdall-ui`: bubble rewritten. Tap opens the panel (it didn't before); drag to the bottom
+  "drop to hide" target hides it (before, any small drag left/up hid it); shake brings it back
+  where it was, repeatably (before, it could never be hidden again after the first recall); it
+  stays inside the screen. Panel gets a Close button and no longer lets taps through to the app.
+- **Breaking**: `OverlayState`/`OverlayVisibility` removed (unused). iOS
+  `discoverStandardUserDefaults()` replaced by `discoverUserDefaults()`/`discoverStorage()`.
+- Storage: re-scan on Storage tab open (`StorageStore.refresh()`), UserDefaults suites, app's own
+  UserDefaults keys only, iOS Keychain (generic passwords), Android Keystore aliases, one-call
+  `Heimdall.discoverStorage(...)` per platform. Fixed: SharedPreferences change listeners could be
+  garbage-collected (held weakly by Android); UserDefaults values could never be edited (`is
+  NSString` never matches a bridged Kotlin `String`).
 - Retention: history older than 24 hours is deleted (at startup and hourly while running), plus
   oldest-first caps per session (5,000 network records / 20,000 log entries / 200 crash records).
 
 ### Added
 - `heimdall-core`: `ShakeDetector` (shared threshold/debounce logic) and `AndroidShakeListener`
   (Android accelerometer wiring). iOS listener is a stub — see `docs/TODO.md`.
-- `heimdall-core`: `OverlayState` — visibility (visible / dismissed-to-edge) and drag offset.
 - `heimdall-ui`: `HeimdallOverlay` composable — wrap a screen's root content once to get the
-  draggable bubble and, on tap, the panel. `HeimdallOverlayController.recall()` reopens a
-  swiped-away bubble.
+  draggable bubble and, on tap, the panel. `HeimdallOverlayController.recall()` brings back a
+  hidden bubble.
 - `heimdall-ui`: `HeimdallPanel` — tab shell for Network / Database / Storage / Logs / Flags.
   All tab bodies are placeholders; no collector is implemented yet.
 - `sample/androidApp`: reference integration wiring `HeimdallOverlay` + `AndroidShakeListener`

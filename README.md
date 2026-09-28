@@ -2,11 +2,12 @@
 
 In-app debug inspector for Kotlin Multiplatform / Compose Multiplatform apps — network,
 database, storage, logs, crashes and feature-flag overrides, behind a floating bubble you can
-swipe away and bring back with a shake.
+drag away to hide and bring back with a shake.
 
-**Status: pre-alpha, milestone 1 in progress.** Overlay shell (bubble, drag, swipe-to-edge
-dismiss, shake-to-recall, empty panel) is implemented for Android. iOS is scaffolded but not
-functional yet — see [docs/TODO.md](docs/TODO.md) and [docs/platform-support.md](docs/platform-support.md).
+**Status: pre-alpha, nothing run on a device yet.** Built so far: the overlay (bubble, tap to
+open, drag to hide, shake-to-recall on Android, empty panel), Heimdall's own 24-hour history
+database, Ktor network capture, and storage (DataStore, SharedPreferences, Keystore, UserDefaults,
+Keychain). See [docs/TODO.md](docs/TODO.md) and [docs/platform-support.md](docs/platform-support.md).
 
 ## Modules
 
