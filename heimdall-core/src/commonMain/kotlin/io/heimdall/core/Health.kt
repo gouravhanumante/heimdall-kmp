@@ -36,18 +36,18 @@ object HealthRules {
     val fatalCrashes = HealthRule("fatal_crashes", "Fatal crashes", 1.0, 1.0, "count")
     val networkErrors = HealthRule("network_errors", "Network errors", 1.0, 3.0, "count")
     val slowOperations = HealthRule("slow_operations", "Slow operations", 1.0, 3.0, "count")
+    val slowFrames = HealthRule("slow_frames", "Slow frames", 1.0, 3.0, "frames")
 
     fun current(
         network: List<NetworkRecord>,
         crashes: List<CrashRecord>,
         performance: List<PerformanceRecord>,
+        frames: List<FrameRecord>,
     ): List<HealthMetric> = listOf(
         measured(fatalCrashes, crashes.count { it.isFatal }.toDouble()),
         measured(networkErrors, network.count { it.isError }.toDouble()),
         measured(slowOperations, performance.count { it.durationMillis >= 200 }.toDouble()),
-        unavailable("recompositions", "Recomposition counts", "per second"),
-        unavailable("frame_jank", "Frame jank", "frames"),
-        unavailable("component_render", "Component render health", ""),
+        measured(slowFrames, frames.count { it.durationMillis > 16 }.toDouble()),
     )
 
     private fun measured(rule: HealthRule, value: Double): HealthMetric = HealthMetric(
@@ -64,13 +64,4 @@ object HealthRules {
         confidence = MetricConfidence.MEASURED,
     )
 
-    private fun unavailable(key: String, label: String, unit: String): HealthMetric = HealthMetric(
-        key = key,
-        label = label,
-        value = null,
-        displayValue = "Unavailable",
-        unit = unit,
-        status = HealthStatus.UNAVAILABLE,
-        confidence = MetricConfidence.UNAVAILABLE,
-    )
 }

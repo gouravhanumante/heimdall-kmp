@@ -32,6 +32,8 @@ object Heimdall {
         if (HeimdallDatabase.isOpen()) return
         HeimdallDatabase.openForApp(context)
         currentSessionId = SessionRepository.startNewSession(epochMillisNow())
+        flags.restorePersisted()
+        installPlatformHooks(context)
     }
 
     /** For tests/previews: an in-memory database, no [PlatformContext] required. Not a
@@ -40,6 +42,7 @@ object Heimdall {
         if (HeimdallDatabase.isOpen()) return
         HeimdallDatabase.openInMemory()
         currentSessionId = SessionRepository.startNewSession(epochMillisNow())
+        flags.restorePersisted()
     }
 
     fun log(
@@ -77,7 +80,7 @@ object Heimdall {
     fun event(name: String, attributes: Map<String, String> = emptyMap(), screen: String? = currentScreen) {
         events.record(
             HeimdallEvent(
-                id = "${epochMillisNow()}-$name-${System.identityHashCode(attributes)}",
+                id = "${epochMillisNow()}-$name-${attributes.hashCode()}",
                 name = name,
                 screen = screen,
                 attributes = attributes,
@@ -120,7 +123,7 @@ object Heimdall {
         if (!enabled) return
         crashes.record(
             CrashRecord(
-                id = "${epochMillisNow()}-${throwable::class.simpleName ?: "Throwable"}-${System.identityHashCode(throwable)}",
+                id = "${epochMillisNow()}-${throwable::class.simpleName ?: "Throwable"}-${throwable.hashCode()}",
                 isFatal = isFatal,
                 exceptionType = throwable::class.qualifiedName ?: throwable::class.simpleName ?: "Throwable",
                 message = throwable.message,

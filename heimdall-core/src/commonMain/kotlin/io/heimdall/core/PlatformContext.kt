@@ -7,6 +7,8 @@ package io.heimdall.core
  */
 expect class PlatformContext
 
+internal expect fun installPlatformHooks(context: PlatformContext)
+
 /** Absolute path to [fileName] inside a directory only this app can read — never the app's own
  * data directory, so a consumer's backup/restore or file-scan of their own data never touches
  * Heimdall's database by accident. */
