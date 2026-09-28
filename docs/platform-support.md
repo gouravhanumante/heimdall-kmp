@@ -4,12 +4,12 @@ One row per feature. "Verified" means run and observed on that platform, not jus
 
 | Feature | Android | iOS |
 |---|---|---|
-| `heimdall-core`/`heimdall-ui` compile for the platform | Verified | Compiles (`iosSimulatorArm64`). Not run — no sample app yet |
-| Bubble: draggable, swipe-to-edge dismiss | Verified | Not implemented |
-| Shake-to-recall | Verified | Not implemented — no accelerometer listener yet (`IosShakeListener` is a stub) |
-| Panel shell (tab navigation) | Verified (empty tab bodies) | Not implemented — no host set up yet |
+| `heimdall-core`/`heimdall-ui` compile for the platform | Compiles | Compiles (`iosSimulatorArm64`) |
+| Bubble: draggable, swipe-to-edge dismiss | Implemented, not run on a device | Not implemented |
+| Shake-to-recall | Implemented, not run on a device. `ShakeDetector` logic unit-tested | Not implemented — `IosShakeListener` is a stub |
+| Panel shell (tab navigation) | Implemented, not run on a device (empty tab bodies) | Not implemented — no host set up yet |
 | Overlay lives above native screens/sheets | Not decided — see `docs/architecture.md` decision 1 | Not decided — same |
-| Network inspector | Not implemented | Not implemented |
+| Network capture (Ktor plugin) | Implemented, JVM-tested with `MockEngine`. No UI yet | Compiles. Not run |
 | Database inspector | Not implemented | Not implemented |
 | Storage (DataStore/prefs) viewer | Not implemented | Not implemented |
 | Logs viewer | Not implemented | Not implemented |

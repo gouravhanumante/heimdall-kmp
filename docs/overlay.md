@@ -1,7 +1,7 @@
 # Overlay
 
 Everything in this doc is implemented in `heimdall-ui`'s `HeimdallBubble`/`HeimdallPanel`/
-`HeimdallOverlay`, Android-verified (see `docs/platform-support.md`).
+`HeimdallOverlay`. Implemented for Android but not yet run on a device (see `docs/platform-support.md`).
 
 ## Bubble
 
