@@ -1,0 +1,16 @@
+.gradle/
+build/
+.kotlin/
+local.properties
+.idea/
+*.iml
+.DS_Store
+captures/
+.cxx/
+*.hprof
+.build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+Pods/
+.venv/
