@@ -45,5 +45,3 @@ Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
 - **Database search is currently snapshot filtering.** The UI filters loaded table rows on
   `Dispatchers.Default`, but true million-row search needs a paged, read-only query contract so
   filtering happens in the app database rather than after materializing every row.
-- **Session date formatting.** The Sessions view currently shows epoch milliseconds; a localized
-  platform date formatter can improve readability later without changing session semantics.

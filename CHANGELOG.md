@@ -100,6 +100,8 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   raw SQLite adapter modules remain separate work.
 
 ### Added
+- The Sessions tab now shows a readable UTC date/time (`formatSessionTimestamp`) instead of raw
+  epoch milliseconds.
 - Added `Heimdall.bubblePosition`: the bubble's resting position (as a screen fraction) now
   survives an app restart, restored on `Heimdall.install(...)`/`installInMemory()`. Previously it
   only survived hide/show within one run.

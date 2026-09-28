@@ -382,7 +382,7 @@ private fun SessionsTab(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            "Started ${session.startedAtMillis}${if (session.crashed) " • crashed" else ""}",
+                            "Started ${formatSessionTimestamp(session.startedAtMillis)}${if (session.crashed) " • crashed" else ""}",
                             color = if (session.crashed) HeimdallDesign.error else HeimdallDesign.onSurfaceVariant,
                             fontSize = 11.sp,
                         )
