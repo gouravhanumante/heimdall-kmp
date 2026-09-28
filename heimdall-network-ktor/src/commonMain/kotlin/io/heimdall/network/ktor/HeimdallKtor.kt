@@ -9,6 +9,7 @@ import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.contentType
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 
 /**
@@ -48,6 +49,7 @@ val HeimdallKtor = createClientPlugin("HeimdallKtor", ::HeimdallKtorConfig) {
                 call
             },
             onFailure = { throwable ->
+                if (throwable is CancellationException) throw throwable
                 Heimdall.network.record(
                     NetworkRecord(
                         id = callId,
