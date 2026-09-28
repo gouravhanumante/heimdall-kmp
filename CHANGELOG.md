@@ -28,6 +28,31 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   NSString` never matches a bridged Kotlin `String`).
 - Retention: history older than 24 hours is deleted (at startup and hourly while running), plus
   oldest-first caps per session (5,000 network records / 20,000 log entries / 200 crash records).
+- Logs and crash records now have live panel rows; fatal crash records are shown alongside logs and
+  the current session header displays a crash badge. Database snapshots expose live state and flag
+  overrides have panel controls, including reset and boolean toggles. These changes are not yet
+  device-verified.
+- Added a bounded, session-persisted `EventStore` and `Heimdall.event(...)` for app-reported
+  timeline events, plus `Heimdall.setCurrentScreen(...)` and scoped `Heimdall.screen(...)` for
+  optional attribution. The panel now includes Overview and Timeline tabs.
+- The shared sample is now a multi-screen harness (Network, Feed, Database, Storage, Logs) reached
+  from an icon Home screen, each attributed via `Heimdall.setCurrentScreen(...)`. Network and Feed
+  make real Ktor calls through `HeimdallKtor`; Feed renders remote images with Coil; Database uses
+  bundled SQLite; Android Storage exercises discovered SharedPreferences.
+- Added explicit `Heimdall.measure(...)` timing with bounded live performance records, Overview
+  slow-operation counts, and matching timeline events. Automatic Compose recomposition metrics are
+  intentionally not included yet.
+- Reworked `HeimdallPanel` into a bounded floating inspector with an icon-only navigation rail,
+  selected-section heading, and `Global` context fallback when no screen is attributed. The
+  inspector is centered on screen.
+- Bubble: on release it now springs to the nearest left/right edge (8dp inset) instead of staying
+  wherever it was dropped; it tracks the finger without lag while dragging.
+- Sample: added a typed Details flow that writes text, int, float, long, and boolean values to
+  Android SharedPreferences; API actions now emit `SampleApi` Logcat messages; Android back closes
+  the inspector before returning from sample screens.
+- Added `DatabaseInspector`, `DatabaseStore.attach(...)`, and refresh-on-open behavior for app
+  database adapters. Heimdall still never owns or migrates the app database; Room, SQLDelight, and
+  raw SQLite adapter modules remain separate work.
 
 ### Added
 - `heimdall-core`: `ShakeDetector` (shared threshold/debounce logic) and `AndroidShakeListener`
@@ -35,7 +60,8 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
 - `heimdall-ui`: `HeimdallOverlay` composable — wrap a screen's root content once to get the
   draggable bubble and, on tap, the panel. `HeimdallOverlayController.recall()` brings back a
   hidden bubble.
-- `heimdall-ui`: `HeimdallPanel` — tab shell for Network / Database / Storage / Logs / Flags.
-  All tab bodies are placeholders; no collector is implemented yet.
+- `heimdall-ui`: `HeimdallPanel` — tab shell for Overview / Timeline / Network / Database / Storage / Logs / Flags, with
+  live network, storage, database metadata, log, crash, and flag content where a collector has
+  published data.
 - `sample/androidApp`: reference integration wiring `HeimdallOverlay` + `AndroidShakeListener`
   into an Activity.

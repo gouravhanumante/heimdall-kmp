@@ -5,7 +5,8 @@ Implemented in `heimdall-ui` (`HeimdallOverlay`, `HeimdallBubbleLayer`, `Heimdal
 
 ## Bubble
 
-- Starts at the right edge, 70% down the screen. Drag it anywhere; it is kept inside the screen.
+- Starts docked to the right edge, 70% down the screen. It follows the finger while dragged and,
+  on release, springs to the nearest left/right edge, inset 8dp (`BubbleEdgeInset`).
 - **Tap** opens the panel. The bubble is hidden while the panel is open.
 - **Drag to hide**: while dragging, a "Drop to hide · shake to bring back" target appears at the
   bottom. Dropping the bubble with its centre inside the bottom 140dp (`HideZoneHeight`) hides it.
@@ -23,7 +24,15 @@ Implemented in `heimdall-ui` (`HeimdallOverlay`, `HeimdallBubbleLayer`, `Heimdal
 
 ## Panel
 
-- Full screen, with a "Heimdall" header and a **Close** button. It blocks touches, so nothing
-  underneath is pressed by mistake.
-- Tabs: Network / Database / Storage / Logs / Flags — placeholder bodies until the UI chunk.
-- The system back button does not close it yet (see `docs/TODO.md`).
+- A centered, bounded floating inspector window: 92% of the screen width (max 420dp) and 72% of
+  the screen height (max 620dp), with rounded corners, elevation, and a **Close** button. The app remains
+  visible around it; touches inside the inspector are consumed.
+- An icon-only navigation rail selects Overview / Timeline / Network / Database / Storage / Logs /
+  Flags. The selected section name appears in the header, and each icon has an accessibility label.
+- The header shows the current screen when the app provides one, otherwise `Global`.
+- Overview shows current-session counts and slow measured operations; Timeline shows app-reported
+  events, performance measurements, and optional screen attribution.
+  Network, storage, database metadata, logs, crashes, and registered flags render published live
+  data; empty sections show an empty state.
+- Android hosts can call `HeimdallOverlayController.handleBack()` from their back dispatcher; it
+  returns `true` when it closes the inspector and `false` when the app should handle navigation.

@@ -13,8 +13,8 @@ Keychain). See [docs/TODO.md](docs/TODO.md) and [docs/platform-support.md](docs/
 
 | Module | Contents |
 |---|---|
-| `heimdall-core` | Platform-agnostic logic: shake detection, overlay state. No UI. |
-| `heimdall-ui` | Compose Multiplatform bubble + panel shell. |
+| `heimdall-core` | Platform-agnostic logic: shake detection, sessions, collectors, events and screen attribution. No UI. |
+| `heimdall-ui` | Compose Multiplatform bubble, overview, timeline and inspector tabs. |
 | `sample/androidApp` | Minimal Android app wiring the two together — the integration reference. |
 
 See [docs/architecture.md](docs/architecture.md) for the module graph and the design decisions

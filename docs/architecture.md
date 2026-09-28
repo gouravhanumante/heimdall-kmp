@@ -13,7 +13,7 @@ graph TD
   `AndroidShakeListener`/`IosShakeListener` per platform) and Heimdall's own
   on-disk store (`HeimdallDatabase`, an `androidx.sqlite` `BundledSQLiteDriver` connection guarded
   by a mutex) holding `NetworkStore`/`LogStore`/`CrashStore`/`StorageStore`/`DatabaseStore`/
-  `FlagStore`, all reachable through the `Heimdall` singleton. Kept UI-free so a future consuming
+  `FlagStore`/`EventStore`, all reachable through the `Heimdall` singleton. Kept UI-free so a future consuming
   app could reuse this layer without pulling in Compose.
 - **`heimdall-network-ktor`**: a Ktor `HttpClient` plugin that reports into `Heimdall.network`.
   Depends only on `heimdall-core` + Ktor, not on `heimdall-ui`.
@@ -46,8 +46,9 @@ Crashlytics for that.
 ### History vs. live state
 
 Only **history** is persisted and split by session: network calls (`NetworkStore`), logs
-(`LogStore`) and crashes (`CrashStore`). These are events — a crash and the calls just before it
-belong to the run that died, and would be lost or mixed in with the next run otherwise.
+(`LogStore`), crashes (`CrashStore`) and app-reported timeline events (`EventStore`). Events can
+carry an optional screen name and bounded string attributes, so a consumer can correlate an
+action with the screen that reported it without Heimdall guessing from navigation or URLs.
 
 **Live state** is never persisted or split by session: storage sources (`StorageStore` —
 DataStore, SharedPreferences, UserDefaults), the app's own databases (`DatabaseStore`) and flag
@@ -59,10 +60,19 @@ in-memory `mutableMapOf`/`StateFlow` state only (see their source).
 
 Different per collector, decided per docs.instructions.md before building each one:
 - **Overlay**: consumer wraps their root composable in `HeimdallOverlay { }` (explicit, no magic).
+- **Screen attribution**: consumer calls `Heimdall.setCurrentScreen(...)`, uses
+  `Heimdall.screen("Name") { ... }` for a scoped block, or passes an explicit screen name to
+  `Heimdall.event(...)`. Heimdall does not infer screen ownership automatically.
+- **Performance**: consumer wraps work in `Heimdall.measure("name") { ... }`. The bounded live
+  `PerformanceStore` feeds Overview, and each measurement is also written as a timeline event.
+  Automatic Compose recomposition counting is a separate integration and is not inferred by this
+  API.
 - **Network** (not yet built): a Ktor `HttpClient` plugin the consumer installs on their own
   client — Heimdall never owns the client.
 - **Database** (not yet built): consumer passes their existing driver/database instance in —
-  Heimdall never creates or migrates it.
+  Heimdall never creates or migrates it. The `DatabaseInspector` contract exposes a bounded
+  snapshot and read-only query function; `DatabaseStore.attach(...)` registers it and refreshes
+  it when the Database tab opens.
 - **Flags** (not yet built): a decorator around the consumer's existing flag/entitlement
   provider, not a replacement — see the design discussion that produced this project.
 
