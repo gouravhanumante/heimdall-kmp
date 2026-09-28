@@ -15,9 +15,9 @@ noted, "has unit tests", not "works".
 | 3 | Network capture (Ktor): headers/bodies as-is, failed calls recorded | Committed, tested |
 | 4 | Storage: DataStore, SharedPreferences, Keystore, UserDefaults, Keychain | Rewritten, not yet compiled/tested |
 | 5 | Logs and crashes | In progress (recording and live UI exist in core, panel is wired in) |
-| 6 | App database inspector (Room/SQLDelight/raw SQLite, live) | In progress (attachable inspector API, refresh, and tab metadata are live; framework adapters remain) |
+| 6 | App database inspector (Room/SQLDelight/raw SQLite, live) | In progress (multiple tables, rows, attachable inspector API, refresh, and per-table search are live; framework adapters remain) |
 | 7 | Flags: persist overrides, restart button | In progress (override logic and panel controls exist, persistence still not durable) |
-| 8 | UI: icon rail, overview, timeline, session bar, error badge | In progress (floating inspector and icon rail are wired; device verification remains) |
+| 8 | UI: icon rail, overview, network details, database rows, searchable storage/logs | In progress (floating inspector and tester-focused views are wired; device verification remains) |
 | 9 | Showing the overlay in a real app (Android auto-inject, iOS window + shake) | Not started |
 | 10 | Release safety (no-op artifact) | Not started |
 | 11 | Sample app exercising every feature | In progress (Network/Feed use real Ktor calls and Coil images; Database uses bundled SQLite; Android Storage uses discovered SharedPreferences; iOS storage host wiring remains) |

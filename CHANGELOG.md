@@ -6,6 +6,8 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
 ## Unreleased
 
 ### Changed
+- Pinned Compose Multiplatform to `1.10.0` and Coil to `3.5.0` so Android artifacts remain
+  compatible with AGP `9.0.1` and compileSdk `36`.
 - **Breaking**: all stores now persist to Heimdall's own on-disk SQLite database (Android:
   `no_backup_files_dir`, excluded from auto-backup; iOS: Application Support) instead of an
   in-memory ring buffer. Data survives app restarts and crashes; `Heimdall.install(context)` must
@@ -50,6 +52,27 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
 - Sample: added a typed Details flow that writes text, int, float, long, and boolean values to
   Android SharedPreferences; API actions now emit `SampleApi` Logcat messages; Android back closes
   the inspector before returning from sample screens.
+- Inspector: Network rows open request/response detail with a copy-cURL action; Database shows table
+  rows; Storage and Logs support search; Timeline is no longer a primary navigation destination.
+- Inspector data presentation: Network payloads are selectable monospace code blocks; Database and
+  Storage use structured tables; Logs and Crashes use contained severity records instead of raw text
+  streams.
+- Added shared `HeimdallDesign` tokens and improved popup behavior: 94% centered sizing, outside-tap
+  dismissal, icon-only close, Network URL search, per-table Database search, searchable Flags, and
+  Overview quick actions/critical issue surfaces.
+- Sample database now includes `users` and `profiles` tables. Android shake recall samples at game
+  rate and posts state changes to the main thread; the inspector has stable minimum dimensions and
+  a device-aware light/dark shell palette.
+- Database navigation now lists tables before opening one; Network detail separates status metadata
+  from a full Copy cURL button, uses an icon Back action, and provides descriptive icons throughout
+  the navigation rail and copy/close actions.
+- Added the supplied Heimdall horn artwork as an Android-safe PNG Compose resource; the original SVG
+  was rasterized because Compose Android does not decode SVG resources directly.
+- Sample controls now use a shared Heimdall Material theme with horn-gold primary actions,
+  watchman-blue secondary accents, consistent outlines, and rounded input/button shapes.
+- Added offline Health rules and an Overview Health table. Measured crashes, network errors, and
+  slow operations are reported with confidence; unsupported Compose metrics are explicitly marked
+  `Unavailable`.
 - Added `DatabaseInspector`, `DatabaseStore.attach(...)`, and refresh-on-open behavior for app
   database adapters. Heimdall still never owns or migrates the app database; Room, SQLDelight, and
   raw SQLite adapter modules remain separate work.

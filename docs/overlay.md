@@ -24,14 +24,31 @@ Implemented in `heimdall-ui` (`HeimdallOverlay`, `HeimdallBubbleLayer`, `Heimdal
 
 ## Panel
 
-- A centered, bounded floating inspector window: 92% of the screen width (max 420dp) and 72% of
-  the screen height (max 620dp), with rounded corners, elevation, and a **Close** button. The app remains
+- A centered, bounded floating inspector window: 94% of the available width and 90% of the
+  available height, capped at 560dp by 760dp on larger screens. It has rounded corners, elevation,
+  and a **Close** button. The app remains
   visible around it; touches inside the inspector are consumed.
-- An icon-only navigation rail selects Overview / Timeline / Network / Database / Storage / Logs /
-  Flags. The selected section name appears in the header, and each icon has an accessibility label.
+- An icon-only navigation rail selects Overview / Network / Database / Storage / Logs / Flags. The
+  selected section name appears in the header, and each icon has an accessibility label.
 - The header shows the current screen when the app provides one, otherwise `Global`.
-- Overview shows current-session counts and slow measured operations; Timeline shows app-reported
-  events, performance measurements, and optional screen attribution.
+- The floating bubble and inspector header use the supplied Heimdall horn artwork rasterized as a
+  PNG Compose resource. Android runtime uses the PNG because Compose Android does not decode SVG
+  resources directly.
+- The inspector shell follows the device light/dark setting through `HeimdallDesign.palette()`;
+  code/data surfaces keep their structured developer-tool contrast in either mode.
+- Overview shows current-session counts, recent activity, and slow measured operations. Timeline
+  events remain available as activity data rather than a primary navigation destination.
+- Overview also shows a Health table. Crashes, network errors, and explicit slow operations are
+  measured; recomposition, frame-jank, and component-health metrics are labeled `Unavailable` until
+  their optional instrumentation exists.
+- Network details render request and response headers/bodies in selectable monospace code blocks,
+  with a copy-cURL action.
+- Database first shows a table list, then drills into one selected table with column headers,
+  horizontally scrollable cells, and per-table search. Storage renders a key/value table; Logs and
+  Crashes render contained severity records. Collection views provide local search where the data
+  set can grow large.
+- Shared inspector tokens live in `HeimdallDesign`: panel/rail/surface colors, status colors,
+  corner radii, code typography, and label sizes are reused across these views.
   Network, storage, database metadata, logs, crashes, and registered flags render published live
   data; empty sections show an empty state.
 - Android hosts can call `HeimdallOverlayController.handleBack()` from their back dispatcher; it

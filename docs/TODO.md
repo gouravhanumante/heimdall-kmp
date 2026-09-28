@@ -25,6 +25,10 @@ Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
   listed. Most apps and Keychain wrappers use generic passwords.
 - **Automatic Compose performance instrumentation.** `Heimdall.measure(...)` reports explicit
   durations, but recomposition counts, frame jank, and automatic screen render timing still need
-  a Compose-specific integration with defined overhead limits.
+  a Compose-specific integration with defined overhead limits. Overview now shows these as
+  `Unavailable` rather than guessing values.
 - **Sample image requests are not yet routed through HeimdallKtor.** Coil loads them through its
   own configured fetcher, while the sample API/feed calls use the Heimdall-installed Ktor client.
+- **Database search is currently snapshot filtering.** The UI filters loaded table rows on
+  `Dispatchers.Default`, but true million-row search needs a paged, read-only query contract so
+  filtering happens in the app database rather than after materializing every row.
