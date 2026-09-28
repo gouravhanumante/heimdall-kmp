@@ -8,21 +8,24 @@ plugins {
 kotlin {
     listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
         target.binaries.framework {
-            baseName = "HeimdallUi"
+            baseName = "HeimdallSampleShared"
             isStatic = true
         }
     }
 
     androidLibrary {
-        namespace = "io.heimdall.ui"
+        namespace = "io.heimdall.sample.shared"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
-        withHostTest { isReturnDefaultValues = true }
     }
 
     sourceSets {
         commonMain.dependencies {
-            implementation(projects.heimdallCore)
+            // api, not implementation: sample:androidApp needs AndroidShakeListener and
+            // HeimdallOverlayController directly, since shake-wiring is host-app code, not
+            // something SampleApp() itself can own (it differs per platform).
+            api(projects.heimdallCore)
+            api(projects.heimdallUi)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)

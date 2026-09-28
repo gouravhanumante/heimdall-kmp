@@ -32,4 +32,5 @@ dependencyResolutionManagement {
 include(":heimdall-core")
 include(":heimdall-ui")
 
+include(":sample:shared")
 include(":sample:androidApp")

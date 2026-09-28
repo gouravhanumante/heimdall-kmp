@@ -4,6 +4,7 @@ One row per feature. "Verified" means run and observed on that platform, not jus
 
 | Feature | Android | iOS |
 |---|---|---|
+| `heimdall-core`/`heimdall-ui` compile for the platform | Verified | Compiles (`iosSimulatorArm64`). Not run — no sample app yet |
 | Bubble: draggable, swipe-to-edge dismiss | Verified | Not implemented |
 | Shake-to-recall | Verified | Not implemented — no accelerometer listener yet (`IosShakeListener` is a stub) |
 | Panel shell (tab navigation) | Verified (empty tab bodies) | Not implemented — no host set up yet |

@@ -22,8 +22,7 @@ android {
 }
 
 dependencies {
-    implementation(projects.heimdallCore)
-    implementation(projects.heimdallUi)
+    implementation(projects.sample.shared)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(compose.material3)
