@@ -29,8 +29,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -58,6 +61,7 @@ internal fun HeimdallBubbleLayer(
     visible: Boolean,
     onTap: () -> Unit,
     onHide: () -> Unit,
+    onBoundsChanged: (Rect) -> Unit,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val density = LocalDensity.current
@@ -108,6 +112,7 @@ internal fun HeimdallBubbleLayer(
                 modifier = Modifier
                     .offset { IntOffset(shown.x.roundToInt(), shown.y.roundToInt()) }
                     .size(BubbleSize)
+                    .onGloballyPositioned { onBoundsChanged(it.boundsInRoot()) }
                     .shadow(if (dragging) 16.dp else 10.dp, CircleShape)
                     .clip(CircleShape)
                     .background(BubbleColor)

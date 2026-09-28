@@ -70,6 +70,7 @@ private val panelDestinations = listOf(
     PanelDestination("Storage", "▤"),
     PanelDestination("Logs", "≡"),
     PanelDestination("Flags", "⚑"),
+    PanelDestination("Sessions", "◷"),
 )
 private val PanelBackground = HeimdallDesign.background
 private val RailBackground = HeimdallDesign.surfaceVariant
@@ -82,6 +83,7 @@ private val TableRow = HeimdallDesign.surface
 fun HeimdallPanel(onClose: () -> Unit, modifier: Modifier = Modifier) {
     val palette = HeimdallDesign.palette()
     var selectedTab by remember { mutableStateOf(0) }
+    var selectedSessionId by remember { mutableStateOf<Long?>(null) }
     var selectedNetworkRecord by remember { mutableStateOf<io.heimdall.core.NetworkRecord?>(null) }
     val sessions = Heimdall.sessions()
     val networkRecords by Heimdall.network.current.collectAsState()
@@ -90,10 +92,29 @@ fun HeimdallPanel(onClose: () -> Unit, modifier: Modifier = Modifier) {
     val crashes by Heimdall.crashes.current.collectAsState()
     val events by Heimdall.events.current.collectAsState()
     val performance by Heimdall.performance.current.collectAsState()
+    val frameRecords by Heimdall.performance.frames.collectAsState()
     val databaseSnapshots by Heimdall.database.current.collectAsState()
     val flagDefinitions = Heimdall.flags.definitions()
     val currentSession = sessions.firstOrNull()
     val hasCrash = currentSession?.crashed == true || crashes.any { it.isFatal }
+    val historicalNetwork by produceState(emptyList<io.heimdall.core.NetworkRecord>(), selectedSessionId) {
+        value = selectedSessionId?.let { withContext(Dispatchers.Default) { Heimdall.network.forSession(it) } } ?: emptyList()
+    }
+    val historicalLogs by produceState(emptyList<io.heimdall.core.LogEntry>(), selectedSessionId) {
+        value = selectedSessionId?.let { withContext(Dispatchers.Default) { Heimdall.logs.forSession(it) } } ?: emptyList()
+    }
+    val historicalCrashes by produceState(emptyList<io.heimdall.core.CrashRecord>(), selectedSessionId) {
+        value = selectedSessionId?.let { withContext(Dispatchers.Default) { Heimdall.crashes.forSession(it) } } ?: emptyList()
+    }
+    val historicalEvents by produceState(emptyList<io.heimdall.core.HeimdallEvent>(), selectedSessionId) {
+        value = selectedSessionId?.let { withContext(Dispatchers.Default) { Heimdall.events.forSession(it) } } ?: emptyList()
+    }
+    val displayedNetwork = if (selectedSessionId == null) networkRecords else historicalNetwork
+    val displayedLogs = if (selectedSessionId == null) logs else historicalLogs
+    val displayedCrashes = if (selectedSessionId == null) crashes else historicalCrashes
+    val displayedEvents = if (selectedSessionId == null) events else historicalEvents
+    val displayedPerformance = if (selectedSessionId == null) performance else emptyList()
+    val displayedFrames = if (selectedSessionId == null) frameRecords else emptyList()
 
     LaunchedEffect(selectedTab) {
         if (selectedTab == 2) Heimdall.database.refreshAll()
@@ -174,16 +195,17 @@ fun HeimdallPanel(onClose: () -> Unit, modifier: Modifier = Modifier) {
 
                     Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                         when (selectedTab) {
-                            0 -> OverviewTab(networkRecords, logs, crashes, events, performance) { selectedTab = it }
+                            0 -> OverviewTab(displayedNetwork, displayedLogs, displayedCrashes, displayedEvents, displayedPerformance, displayedFrames) { selectedTab = it }
                             1 -> if (selectedNetworkRecord == null) {
-                                NetworkTab(networkRecords) { selectedNetworkRecord = it }
+                                NetworkTab(displayedNetwork) { selectedNetworkRecord = it }
                             } else {
                                 NetworkDetail(selectedNetworkRecord!!) { selectedNetworkRecord = null }
                             }
-                            2 -> DatabaseTab(databaseSnapshots)
-                            3 -> StorageTab(storageSnapshots)
-                            4 -> LogsTab(logs, crashes)
-                            5 -> FlagsTab(flagDefinitions)
+                            2 -> if (selectedSessionId == null) DatabaseTab(databaseSnapshots) else HistoryOnlyNotice()
+                            3 -> if (selectedSessionId == null) StorageTab(storageSnapshots) else HistoryOnlyNotice()
+                            4 -> LogsTab(displayedLogs, displayedCrashes)
+                            5 -> if (selectedSessionId == null) FlagsTab(flagDefinitions) else HistoryOnlyNotice()
+                            6 -> SessionsTab(sessions, selectedSessionId) { selectedSessionId = it }
                         }
                     }
                 }
@@ -223,9 +245,10 @@ private fun OverviewTab(
     crashes: List<io.heimdall.core.CrashRecord>,
     events: List<io.heimdall.core.HeimdallEvent>,
     performance: List<io.heimdall.core.PerformanceRecord>,
+    frames: List<io.heimdall.core.FrameRecord>,
     onNavigate: (Int) -> Unit,
 ) {
-    val health = HealthRules.current(networkRecords, crashes, performance)
+    val health = HealthRules.current(networkRecords, crashes, performance, frames)
     Column {
         Text("Current session", color = Color.White, fontWeight = FontWeight.Bold)
         Text("${networkRecords.size} network calls", color = HeimdallDesign.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
@@ -237,6 +260,19 @@ private fun OverviewTab(
             color = if (performance.any { it.durationMillis >= 200 }) HeimdallDesign.warning else HeimdallDesign.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp),
         )
+        Text(
+            "${frames.count { it.durationMillis > 16 }} slow frames",
+            color = if (frames.any { it.durationMillis > 16 }) HeimdallDesign.warning else HeimdallDesign.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        frames.maxByOrNull { it.durationMillis }?.let { worstFrame ->
+            Text(
+                "Worst frame: ${worstFrame.durationMillis} ms",
+                color = HeimdallDesign.warning,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
         performance.maxByOrNull { it.durationMillis }?.let { slowest ->
             Text(
                 "Slowest: ${slowest.name} (${slowest.durationMillis} ms)",
@@ -268,12 +304,13 @@ private fun OverviewTab(
             }
         }
         val issueCount = crashes.count { it.isFatal } + networkRecords.count { it.isError } +
-            performance.count { it.durationMillis >= 200 }
+            performance.count { it.durationMillis >= 200 } + frames.count { it.durationMillis > 16 }
         if (issueCount > 0) {
             Text("Needs attention", color = HeimdallDesign.warning, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp))
             if (crashes.any { it.isFatal }) IssueSurface("Fatal crash recorded", HeimdallDesign.error) { onNavigate(4) }
             if (networkRecords.any { it.isError }) IssueSurface("Failed network request", HeimdallDesign.error) { onNavigate(1) }
             if (performance.any { it.durationMillis >= 200 }) IssueSurface("Slow operation detected", HeimdallDesign.warning) { onNavigate(0) }
+            if (frames.any { it.durationMillis > 16 }) IssueSurface("Slow frame detected", HeimdallDesign.warning) { onNavigate(0) }
         }
     }
 }
@@ -313,6 +350,52 @@ private fun IssueSurface(message: String, accent: Color, onClick: () -> Unit) {
     ) {
         Text(message, color = accent, fontSize = 12.sp, modifier = Modifier.padding(10.dp))
     }
+}
+
+@Composable
+private fun SessionsTab(
+    sessions: List<io.heimdall.core.Session>,
+    selectedSessionId: Long?,
+    onSelect: (Long?) -> Unit,
+) {
+    if (sessions.isEmpty()) {
+        EmptyState("No sessions recorded")
+        return
+    }
+
+    LazyColumn {
+        items(sessions) { session ->
+            val isCurrent = session.id == Heimdall.currentSessionId && selectedSessionId == null
+            Surface(
+                color = if (isCurrent) HeimdallDesign.primaryContainer else HeimdallDesign.surface,
+                shape = RoundedCornerShape(HeimdallDesign.corner),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).clickable {
+                    onSelect(if (session.id == Heimdall.currentSessionId) null else session.id)
+                },
+            ) {
+                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("◷", color = HeimdallDesign.primary, fontSize = 20.sp)
+                    Column(modifier = Modifier.padding(start = 10.dp)) {
+                        Text(
+                            if (isCurrent) "Current session" else "Session ${session.id}",
+                            color = HeimdallDesign.onSurface,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            "Started ${session.startedAtMillis}${if (session.crashed) " • crashed" else ""}",
+                            color = if (session.crashed) HeimdallDesign.error else HeimdallDesign.onSurfaceVariant,
+                            fontSize = 11.sp,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryOnlyNotice() {
+    EmptyState("This section shows live state only. Select Current session to view it.")
 }
 
 @Composable
@@ -685,6 +768,12 @@ private fun FlagsTab(definitions: List<io.heimdall.core.FlagDefinition>) {
                     onClick = { Heimdall.flags.resetAll() },
                     modifier = Modifier.padding(bottom = 12.dp),
                 ) { Text("Reset overrides") }
+                if (Heimdall.flags.restartHandler != null) {
+                    Button(
+                        onClick = { Heimdall.flags.requestRestart() },
+                        modifier = Modifier.padding(bottom = 12.dp),
+                    ) { Text("Restart app") }
+                }
             }
             items(filteredDefinitions) { flag ->
             val overrideValue = Heimdall.flags.overrideFor(flag.key)
@@ -710,24 +799,52 @@ private fun FlagsTab(definitions: List<io.heimdall.core.FlagDefinition>) {
                                 onClick = { Heimdall.flags.setOverride(flag.key, FlagValue.BoolValue(!value.value)) },
                             ) { Text(if (value.value) "Turn off" else "Turn on") }
                         }
-                        is FlagValue.TextValue -> Text(
-                            text = "Text value: ${value.value}",
-                            color = HeimdallDesign.onSurfaceVariant,
-                            fontSize = 11.sp,
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
-                        is FlagValue.NumberValue -> Text(
-                            text = "Number value: ${value.value}",
-                            color = HeimdallDesign.onSurfaceVariant,
-                            fontSize = 11.sp,
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
+                        is FlagValue.TextValue -> TextFlagEditor(flag.key, value.value)
+                        is FlagValue.NumberValue -> NumberFlagEditor(flag.key, value.value)
+                    }
+                    if (overrideValue != null) {
+                        TextButton(onClick = { Heimdall.flags.setOverride(flag.key, null) }) {
+                            Text("Reset this flag")
+                        }
                     }
                 }
             }
         }
     }
 }
+}
+
+@Composable
+private fun TextFlagEditor(key: String, current: String) {
+    var draft by remember(key, current) { mutableStateOf(current) }
+    OutlinedTextField(
+        value = draft,
+        onValueChange = { draft = it },
+        label = { Text("Override value") },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+    )
+    Button(onClick = { Heimdall.flags.setOverride(key, FlagValue.TextValue(draft)) }) {
+        Text("Save text override")
+    }
+}
+
+@Composable
+private fun NumberFlagEditor(key: String, current: Double) {
+    var draft by remember(key, current) { mutableStateOf(current.toString()) }
+    val parsed = draft.toDoubleOrNull()
+    OutlinedTextField(
+        value = draft,
+        onValueChange = { draft = it },
+        label = { Text("Override number") },
+        singleLine = true,
+        isError = draft.isNotEmpty() && parsed == null,
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+    )
+    Button(
+        onClick = { parsed?.let { Heimdall.flags.setOverride(key, FlagValue.NumberValue(it)) } },
+        enabled = parsed != null,
+    ) { Text("Save number override") }
 }
 
 @Composable

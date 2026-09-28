@@ -38,3 +38,8 @@ kotlin {
         publicResClass = true
         packageOfResClass = "io.heimdall.ui.generated.resources"
     }
+
+    composeCompiler {
+        reportsDestination = layout.buildDirectory.dir("compose-compiler")
+        metricsDestination = layout.buildDirectory.dir("compose-compiler")
+    }

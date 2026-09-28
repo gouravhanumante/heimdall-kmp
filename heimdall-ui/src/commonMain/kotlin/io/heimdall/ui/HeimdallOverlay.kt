@@ -8,6 +8,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 
 /** Call [recall] from a platform shake listener to bring a hidden bubble back. Safe to call from
  * any thread, and any number of times. */
@@ -16,6 +20,7 @@ class HeimdallOverlayController {
         private set
     internal var panelOpen by mutableStateOf(false)
         private set
+    private var bubbleBounds: Rect? = null
 
     fun recall() {
         bubbleVisible = true
@@ -33,6 +38,13 @@ class HeimdallOverlayController {
         if (!panelOpen) return false
         panelOpen = false
         return true
+    }
+
+    fun acceptsOverlayTouch(x: Float, y: Float): Boolean =
+        panelOpen || bubbleBounds?.contains(Offset(x, y)) == true
+
+    internal fun updateBubbleBounds(bounds: Rect) {
+        bubbleBounds = bounds
     }
 
     internal fun hide() {
@@ -57,6 +69,7 @@ fun HeimdallOverlay(
             visible = controller.bubbleVisible && !controller.panelOpen,
             onTap = { controller.openPanel() },
             onHide = { controller.hide() },
+            onBoundsChanged = controller::updateBubbleBounds,
         )
 
         if (controller.panelOpen) {
