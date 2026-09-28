@@ -108,7 +108,7 @@ internal fun HeimdallBubbleLayer(
                 modifier = Modifier
                     .offset { IntOffset(shown.x.roundToInt(), shown.y.roundToInt()) }
                     .size(BubbleSize)
-                    .shadow(8.dp, CircleShape)
+                    .shadow(if (dragging) 16.dp else 10.dp, CircleShape)
                     .clip(CircleShape)
                     .background(BubbleColor)
                     .pointerInput(Unit) { detectTapGestures(onTap = { latestOnTap() }) }

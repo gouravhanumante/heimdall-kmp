@@ -51,6 +51,9 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.heimdall.core.FlagValue
+import io.heimdall.core.HealthMetric
+import io.heimdall.core.HealthRules
+import io.heimdall.core.HealthStatus
 import io.heimdall.core.Heimdall
 import io.heimdall.ui.generated.resources.Res
 import io.heimdall.ui.generated.resources.heimdall_horn_logo
@@ -127,7 +130,7 @@ fun HeimdallPanel(onClose: () -> Unit, modifier: Modifier = Modifier) {
                     Image(
                         painter = painterResource(Res.drawable.heimdall_horn_logo),
                         contentDescription = "Heimdall",
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(32.dp).padding(end = 8.dp),
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -222,6 +225,7 @@ private fun OverviewTab(
     performance: List<io.heimdall.core.PerformanceRecord>,
     onNavigate: (Int) -> Unit,
 ) {
+    val health = HealthRules.current(networkRecords, crashes, performance)
     Column {
         Text("Current session", color = Color.White, fontWeight = FontWeight.Bold)
         Text("${networkRecords.size} network calls", color = HeimdallDesign.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
@@ -241,6 +245,8 @@ private fun OverviewTab(
                 modifier = Modifier.padding(top = 4.dp),
             )
         }
+        Text("Health", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp))
+        health.forEach { HealthMetricRow(it) }
         Text("Quick access", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp))
         Row(modifier = Modifier.padding(top = 8.dp)) {
             listOf(
@@ -268,6 +274,32 @@ private fun OverviewTab(
             if (crashes.any { it.isFatal }) IssueSurface("Fatal crash recorded", HeimdallDesign.error) { onNavigate(4) }
             if (networkRecords.any { it.isError }) IssueSurface("Failed network request", HeimdallDesign.error) { onNavigate(1) }
             if (performance.any { it.durationMillis >= 200 }) IssueSurface("Slow operation detected", HeimdallDesign.warning) { onNavigate(0) }
+        }
+    }
+}
+
+@Composable
+private fun HealthMetricRow(metric: HealthMetric) {
+    val accent = when (metric.status) {
+        HealthStatus.OK -> HeimdallDesign.success
+        HealthStatus.WARNING -> HeimdallDesign.warning
+        HealthStatus.CRITICAL -> HeimdallDesign.error
+        HealthStatus.UNAVAILABLE -> HeimdallDesign.onSurfaceVariant
+    }
+    Surface(
+        color = HeimdallDesign.surface,
+        shape = RoundedCornerShape(HeimdallDesign.corner),
+        modifier = Modifier.fillMaxWidth().padding(top = 5.dp),
+    ) {
+        Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(metric.label, color = HeimdallDesign.onSurface, fontSize = 12.sp, modifier = Modifier.weight(1f))
+            Text(metric.displayValue, color = accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text(
+                text = if (metric.confidence == io.heimdall.core.MetricConfidence.MEASURED) "Measured" else "Unavailable",
+                color = HeimdallDesign.onSurfaceVariant,
+                fontSize = 10.sp,
+                modifier = Modifier.padding(start = 8.dp),
+            )
         }
     }
 }
@@ -594,28 +626,27 @@ private fun LogsTab(
             it.exceptionType.lowercase().contains(normalizedQuery) ||
             it.message.orEmpty().lowercase().contains(normalizedQuery)
     }
-    if (filteredEntries.isEmpty() && filteredCrashes.isEmpty()) {
-        EmptyState("No logs recorded")
-        return
-    }
-
     Column {
         OutlinedTextField(query, { query = it }, label = { Text("Search logs") }, singleLine = true)
-        LazyColumn(modifier = Modifier.padding(top = 12.dp)) {
-        items(filteredCrashes) { crash ->
-            LogSurface(
-                title = "${if (crash.isFatal) "FATAL" else "CRASH"}: ${crash.exceptionType}",
-                detail = crash.message ?: "No exception message",
-                accent = HeimdallDesign.error,
-            )
-        }
-        items(filteredEntries) { entry ->
-            LogSurface(
-                title = "${entry.level.name}  ${entry.tag}",
-                detail = entry.message,
-                accent = if (entry.level == io.heimdall.core.LogLevel.ERROR) HeimdallDesign.error else HeimdallDesign.onSurfaceVariant,
-            )
-        }
+        if (filteredEntries.isEmpty() && filteredCrashes.isEmpty()) {
+            EmptyState(if (entries.isEmpty() && crashes.isEmpty()) "No logs recorded" else "No matching logs")
+        } else {
+            LazyColumn(modifier = Modifier.padding(top = 12.dp)) {
+                items(filteredCrashes) { crash ->
+                    LogSurface(
+                        title = "${if (crash.isFatal) "FATAL" else "CRASH"}: ${crash.exceptionType}",
+                        detail = crash.message ?: "No exception message",
+                        accent = HeimdallDesign.error,
+                    )
+                }
+                items(filteredEntries) { entry ->
+                    LogSurface(
+                        title = "${entry.level.name}  ${entry.tag}",
+                        detail = entry.message,
+                        accent = if (entry.level == io.heimdall.core.LogLevel.ERROR) HeimdallDesign.error else HeimdallDesign.onSurfaceVariant,
+                    )
+                }
+            }
         }
     }
 }

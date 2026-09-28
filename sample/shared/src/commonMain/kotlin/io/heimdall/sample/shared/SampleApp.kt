@@ -15,11 +15,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Typography
+import androidx.compose.material3.lightColorScheme
 import coil3.compose.AsyncImage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -51,6 +54,7 @@ import androidx.sqlite.execSQL
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.launch
 
 private enum class SampleScreen(val title: String, val glyph: String) {
@@ -64,6 +68,18 @@ private enum class SampleScreen(val title: String, val glyph: String) {
 }
 
 private data class FeedItem(val id: Int, val title: String, val imageUrl: String)
+
+private val SampleColors = lightColorScheme(
+    primary = Color(0xFF9A5A00),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFE0A3),
+    onPrimaryContainer = Color(0xFF321A00),
+    secondary = Color(0xFF176B8C),
+    onSecondary = Color.White,
+    surface = Color(0xFFF1F4EF),
+    onSurface = Color(0xFF17212B),
+    outline = Color(0xFF6E7C86),
+)
 
 @Composable
 fun SampleApp(overlayController: HeimdallOverlayController) {
@@ -89,7 +105,15 @@ fun SampleApp(overlayController: HeimdallOverlayController) {
         }
     }
 
-    MaterialTheme {
+    MaterialTheme(
+        colorScheme = SampleColors,
+        typography = Typography(),
+        shapes = Shapes(
+            small = RoundedCornerShape(10.dp),
+            medium = RoundedCornerShape(12.dp),
+            large = RoundedCornerShape(16.dp),
+        ),
+    ) {
         HeimdallOverlay(controller = overlayController) {
             Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF1F4EF))) {
                 Row(
@@ -156,9 +180,15 @@ private fun NetworkScreen(client: HttpClient) {
             response = "Loading..."
             scope.launch {
                 samplePlatformLog("SampleApi", "GET /todos/1 started")
-                response = runCatching { client.get("https://jsonplaceholder.typicode.com/todos/1").bodyAsText() }
-                    .getOrElse { "Request failed: ${it.message}" }
-                samplePlatformLog("SampleApi", "GET /todos/1 completed: $response")
+                try {
+                    response = client.get("https://jsonplaceholder.typicode.com/todos/1").bodyAsText()
+                    samplePlatformLog("SampleApi", "GET /todos/1 completed: $response")
+                } catch (cancellation: CancellationException) {
+                    throw cancellation
+                } catch (failure: Throwable) {
+                    response = "Request failed: ${failure.message}"
+                    samplePlatformLog("SampleApi", "GET /todos/1 failed: ${failure.message}")
+                }
             }
         }, modifier = Modifier.padding(top = 16.dp)) { Text("Call API") }
         Text(response, modifier = Modifier.padding(top = 16.dp))
