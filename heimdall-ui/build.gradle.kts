@@ -17,17 +17,24 @@ kotlin {
         namespace = "io.heimdall.ui"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
+        androidResources.enable = true
         withHostTest { isReturnDefaultValues = true }
     }
 
     sourceSets {
         commonMain.dependencies {
             implementation(projects.heimdallCore)
-            implementation(compose.runtime)
-            implementation(compose.animation)
-            implementation(compose.foundation)
-            implementation(compose.material3)
-            implementation(compose.ui)
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.animation)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.material3)
+            implementation(libs.compose.resources)
+            implementation(libs.compose.ui)
         }
     }
+}
+
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "io.heimdall.ui.generated.resources"
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.core.Spring
@@ -31,18 +32,20 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.heimdall.ui.generated.resources.Res
+import io.heimdall.ui.generated.resources.heimdall_horn_logo
+import org.jetbrains.compose.resources.painterResource
 import kotlin.math.roundToInt
 
 private val BubbleSize = 56.dp
 private val BubbleEdgeInset = 8.dp
 private val HideZoneHeight = 140.dp
-private val BubbleColor = Color(0xFF1E1B4B)
-private val HideTargetIdle = Color(0xCC111111)
-private val HideTargetActive = Color(0xFFDC2626)
+private val BubbleColor = HeimdallDesign.primaryContainer
+private val HideTargetIdle = HeimdallDesign.surface
+private val HideTargetActive = HeimdallDesign.error
 
 /**
  * Full-screen layer that draws only the bubble; it has no pointer handling of its own, so touches
@@ -141,7 +144,11 @@ internal fun HeimdallBubbleLayer(
                     },
                 contentAlignment = Alignment.Center,
             ) {
-                Text(text = "H", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Image(
+                    painter = painterResource(Res.drawable.heimdall_horn_logo),
+                    contentDescription = "Heimdall",
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
     }
