@@ -10,6 +10,7 @@ One row per feature. "Verified" means run and observed on that platform, not jus
 | Panel shell (tab navigation) | Implemented, not run on a device (empty tab bodies) | Not implemented — no host set up yet |
 | Overlay lives above native screens/sheets | Not decided — see `docs/architecture.md` decision 1 | Not decided — same |
 | Network capture (Ktor plugin) | Implemented, JVM-tested with `MockEngine`. No UI yet | Compiles. Not run |
+| Persistence (own SQLite DB, sessions, retention) | Implemented, JVM-tested (`sqlite-bundled-jvm` for host tests) | Compiles (`sqlite-bundled` for `iosArm64`/`iosSimulatorArm64`). Not run |
 | Database inspector | Not implemented | Not implemented |
 | Storage (DataStore/prefs) viewer | Not implemented | Not implemented |
 | Logs viewer | Not implemented | Not implemented |

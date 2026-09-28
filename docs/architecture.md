@@ -5,17 +5,40 @@
 ```mermaid
 graph TD
     core[heimdall-core] --> ui[heimdall-ui]
+    core --> networkKtor[heimdall-network-ktor]
     ui --> sampleAndroid[sample/androidApp]
 ```
 
 - **`heimdall-core`**: no UI, no Compose dependency. Shake detection (`ShakeDetector` shared +
-  `AndroidShakeListener`/`IosShakeListener` per platform) and `OverlayState`. Kept UI-free so a
-  future consuming app could reuse the shake/state logic without pulling in Compose.
+  `AndroidShakeListener`/`IosShakeListener` per platform), `OverlayState`, and Heimdall's own
+  on-disk store (`HeimdallDatabase`, an `androidx.sqlite` `BundledSQLiteDriver` connection guarded
+  by a mutex) holding `NetworkStore`/`LogStore`/`CrashStore`/`StorageStore`/`DatabaseStore`/
+  `FlagStore`, all reachable through the `Heimdall` singleton. Kept UI-free so a future consuming
+  app could reuse this layer without pulling in Compose.
+- **`heimdall-network-ktor`**: a Ktor `HttpClient` plugin that reports into `Heimdall.network`.
+  Depends only on `heimdall-core` + Ktor, not on `heimdall-ui`.
 - **`heimdall-ui`**: Compose Multiplatform. `HeimdallBubble`, `HeimdallPanel`,
   `HeimdallOverlay` (the composable a consumer wraps their content in).
-- Collector modules (network/db/storage/logs/flags) do not exist yet — each will be its own
-  module so a consumer only pulls in what they use (see prior art: kmp-inspector's
-  `library-ktor`/`library-room` split, AELog's per-plugin artifacts).
+- Further collector modules (storage/DB/logs/flags UI) don't exist yet — each is its own module
+  so a consumer only pulls in what they use.
+
+## Persistence and sessions
+
+Heimdall keeps its own SQLite database (`HeimdallDatabase`), entirely separate from the app's —
+never the app's own data directory, so a consumer's backup/restore of their own data can't catch
+Heimdall's captures by accident. `Heimdall.install(context)` opens it and starts a new **session**
+(one process run, from start to process death — backgrounding and resuming later is still the
+same session). Every record is tagged with the session it happened in, so the panel can show one
+run's data without earlier or later runs mixed in, and a run that crashed is flagged.
+
+Each store keeps a capped, in-memory, newest-first copy of the **current** session as a
+`StateFlow`, so the panel updates live without polling the database; browsing a past session reads
+straight from disk instead. Recording happens whether or not the panel/overlay is open or has
+ever been shown — the store's `record`/`publish` call is what writes, not anything overlay-related.
+
+Retention is oldest-first at two levels: per-session caps (`HeimdallDatabase.MAX_*`) evict the
+oldest rows in that session once exceeded, and a session cap (`MAX_SESSIONS`) evicts whole old
+sessions once exceeded.
 
 ## Integration model
 

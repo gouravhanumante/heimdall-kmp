@@ -12,9 +12,13 @@ Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
   when dismissed; there's no "reset to default corner" behaviour yet.
 - **No no-op / release-safety mechanism at all.** See `docs/release-builds.md`. This must exist
   before any consumer is told it's safe to ship with Heimdall in the dependency graph.
-- **No collectors implemented**: network, database, storage, logs/crashes, feature-flag
-  overrides are all unbuilt. Each needs its own design-before-implementing pass per
-  `docs.instructions.md`, since each has a different integration model.
+- **Storage, database, flags-UI, logs/crash-capture collectors unbuilt.** `FlagStore`'s
+  override-vs-delegate logic exists in `heimdall-core`, but nothing calls it from a real flag
+  provider yet, there's no persistence for overrides, and there's no panel screen for any of
+  these five areas. Each needs its own design-before-implementing pass per `docs.instructions.md`.
 - **Overlay-window prototype (decision 2 in `docs/architecture.md`) not attempted.** Currently
   running on "wrap the root composable", which has the known limitation that native
   sheets/screens outside that composable hide the bubble.
+- **`Heimdall.install()` must be called before anything records, and nothing enforces this at
+  the call site.** `HeimdallDatabase.requireConnection()` throws at first use if it wasn't, which
+  only surfaces the mistake at runtime, not at compile time.

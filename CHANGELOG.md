@@ -5,6 +5,19 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
 
 ## Unreleased
 
+### Changed
+- **Breaking**: all stores now persist to Heimdall's own on-disk SQLite database (Android:
+  `no_backup_files_dir`, excluded from auto-backup; iOS: Application Support) instead of an
+  in-memory ring buffer. Data survives app restarts and crashes; `Heimdall.install(context)` must
+  be called once at startup before anything is recorded — see `docs/architecture.md`.
+- Every record is tagged with the app-run ("session") it happened in. `Heimdall.sessions()` lists
+  past runs, `NetworkStore`/`LogStore`/`CrashStore.forSession(id)` reads one back. A session that
+  had a fatal crash is flagged (`Session.crashed`).
+- `NetworkStore`/`LogStore`/`CrashStore` now expose `current: StateFlow<List<_>>` (the live
+  current session, newest-first) instead of a `snapshot()` function.
+- Retention: oldest-first eviction per session (5,000 network records / 20,000 log entries / 200
+  crash records) and oldest-first eviction across sessions (last 20 kept).
+
 ### Added
 - `heimdall-core`: `ShakeDetector` (shared threshold/debounce logic) and `AndroidShakeListener`
   (Android accelerometer wiring). iOS listener is a stub — see `docs/TODO.md`.
