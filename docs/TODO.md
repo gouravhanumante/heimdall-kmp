@@ -12,7 +12,7 @@ Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
   when dismissed; there's no "reset to default corner" behaviour yet.
 - **No no-op / release-safety mechanism at all.** See `docs/release-builds.md`. This must exist
   before any consumer is told it's safe to ship with Heimdall in the dependency graph.
-- **Storage, database, flags-UI, logs/crash-capture collectors unbuilt.** `FlagStore`'s
+- **Database, flags-UI, logs/crash-capture collectors unbuilt.** `FlagStore`'s
   override-vs-delegate logic exists in `heimdall-core`, but nothing calls it from a real flag
   provider yet, there's no persistence for overrides, and there's no panel screen for any of
   these five areas. Each needs its own design-before-implementing pass per `docs.instructions.md`.
@@ -22,3 +22,9 @@ Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
 - **`Heimdall.install()` must be called before anything records, and nothing enforces this at
   the call site.** `HeimdallDatabase.requireConnection()` throws at first use if it wasn't, which
   only surfaces the mistake at runtime, not at compile time.
+- **Storage: Keychain (iOS) and Android Keystore not supported.** Both need real
+  crypto/security-framework calls that can't be checked without a device; deferred rather than
+  shipped untested. Keystore keys can never be read back anyway, only their aliases listed.
+- **Storage: SharedPreferences files created after `discoverAndroidPreferences()` are missed**,
+  and custom `NSUserDefaults(suiteName:)` suites aren't found at all (iOS can't list them).
+  Options: re-scan when the panel opens; let the app pass suite names explicitly.

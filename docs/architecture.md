@@ -40,6 +40,18 @@ Retention is oldest-first at two levels: per-session caps (`HeimdallDatabase.MAX
 oldest rows in that session once exceeded, and a session cap (`MAX_SESSIONS`) evicts whole old
 sessions once exceeded.
 
+### History vs. live state
+
+Only **history** is persisted and split by session: network calls (`NetworkStore`), logs
+(`LogStore`) and crashes (`CrashStore`). These are events — a crash and the calls just before it
+belong to the run that died, and would be lost or mixed in with the next run otherwise.
+
+**Live state** is never persisted or split by session: storage sources (`StorageStore` —
+DataStore, SharedPreferences, UserDefaults), the app's own databases (`DatabaseStore`) and flag
+overrides (`FlagStore`). They answer "what is it right now"; a copy from a previous run would
+just be a stale, misleading version of the same thing. `StorageStore` and `DatabaseStore` hold
+in-memory `mutableMapOf`/`StateFlow` state only (see their source).
+
 ## Integration model
 
 Different per collector, decided per docs.instructions.md before building each one:
