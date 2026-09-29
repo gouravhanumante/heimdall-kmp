@@ -13,10 +13,11 @@ graph TD
     ui --> sampleShared[sample/shared]
 ```
 
-`heimdall-core-noop`, `heimdall-ui-noop`, and `heimdall-network-ktor-noop` are not shown above:
-they are drop-in replacements for `heimdall-core`/`heimdall-ui`/`heimdall-network-ktor` in a
-release build, not additional dependents — see `docs/release-builds.md`. They depend on nothing
-Heimdall-internal at all (not even each other).
+`heimdall-core-noop`, `heimdall-ui-noop`, `heimdall-network-ktor-noop`, `heimdall-storage-noop`,
+`heimdall-database-sqlite-noop`, and `heimdall-flags-firebase-noop` are not shown above: they are
+drop-in replacements for their real counterparts in a release build, not additional dependents —
+see `docs/release-builds.md`. Each depends only on its own real module's `-noop` core counterpart
+(e.g. `heimdall-storage-noop` depends on `heimdall-core-noop`), never on the real modules.
 
 - **`heimdall-core`**: no UI, no Compose dependency. Shake detection (`ShakeDetector` shared +
   `AndroidShakeListener`/`IosShakeListener` per platform) and Heimdall's own

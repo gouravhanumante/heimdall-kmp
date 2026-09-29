@@ -1,7 +1,8 @@
 # Release builds
 
-Three modules now have a real no-op counterpart: `heimdall-core-noop`, `heimdall-ui-noop`, and
-`heimdall-network-ktor-noop`. Each exposes the exact same public API as its real module — same
+All six modules now have a real no-op counterpart: `heimdall-core-noop`, `heimdall-ui-noop`,
+`heimdall-network-ktor-noop`, `heimdall-storage-noop`, `heimdall-database-sqlite-noop`, and
+`heimdall-flags-firebase-noop`. Each exposes the exact same public API as its real module — same
 package, same class/function names and signatures — with every body doing nothing. Swapping one
 in removes the real implementation's code and dependencies from that build variant entirely; it
 is not a runtime flag, the real code simply isn't there.
@@ -16,10 +17,16 @@ dependencies {
     debugImplementation("io.github.gouravhanumante:heimdall-core:VERSION")
     debugImplementation("io.github.gouravhanumante:heimdall-ui:VERSION")
     debugImplementation("io.github.gouravhanumante:heimdall-network-ktor:VERSION")
+    debugImplementation("io.github.gouravhanumante:heimdall-storage:VERSION")
+    debugImplementation("io.github.gouravhanumante:heimdall-database-sqlite:VERSION")
+    debugImplementation("io.github.gouravhanumante:heimdall-flags-firebase:VERSION")
 
     releaseImplementation("io.github.gouravhanumante:heimdall-core-noop:VERSION")
     releaseImplementation("io.github.gouravhanumante:heimdall-ui-noop:VERSION")
     releaseImplementation("io.github.gouravhanumante:heimdall-network-ktor-noop:VERSION")
+    releaseImplementation("io.github.gouravhanumante:heimdall-storage-noop:VERSION")
+    releaseImplementation("io.github.gouravhanumante:heimdall-database-sqlite-noop:VERSION")
+    releaseImplementation("io.github.gouravhanumante:heimdall-flags-firebase-noop:VERSION")
 }
 ```
 
@@ -49,24 +56,60 @@ resolved does.
 - **`heimdall-network-ktor-noop`**: `HeimdallKtor` installs on the client but never inspects a
   request or response. Proved by `HeimdallKtorNoopTest`: installing it does not change the
   response body or status the app sees.
+- **`heimdall-storage-noop`**: `discoverStorage`/`discoverAndroidPreferences`/
+  `discoverAndroidKeystore`/`discoverUserDefaults`/`discoverKeychain`/`attachDataStore` all do
+  nothing — no file/Keychain/Keystore scanning happens.
+- **`heimdall-database-sqlite-noop`**: `SqliteFileInspector`'s constructor never opens a
+  connection; `snapshot()` returns an empty table list, `query(...)` returns an empty result
+  rather than throwing.
+- **`heimdall-flags-firebase-noop`**: `attachToHeimdall()` still reads Firebase Remote Config
+  values directly and returns a `FlagProvider` that works normally — the app's real flag values
+  are unaffected. Only the discovery/override side (which lives in `heimdall-core-noop`) is inert.
+
+## iOS: picking real vs no-op
+
+Proven in `sample/shared`, not just documented: its `build.gradle.kts` reads
+`System.getenv("CONFIGURATION")` and depends on the `-noop` artifacts when it's `"Release"`,
+the real ones otherwise (unset — e.g. a plain `./gradlew compileKotlinIosSimulatorArm64` —
+defaults to real). This works because Xcode invokes `embedAndSignAppleFrameworkForXcode` as a
+full, separate Gradle process per build configuration (see `sample/iosApp/project.yml`'s
+`preBuildScripts`), with `CONFIGURATION` set in that process's environment — so a Debug build
+and a Release build resolve completely different dependency graphs, not just a runtime flag.
+Verified by compiling `sample/shared` for `iosSimulatorArm64` all three ways (unset, `Debug`,
+`Release`) and confirming each resolves and compiles — including `SampleApp.kt` and
+`MainViewController.kt`, which call straight into `Heimdall`/`HeimdallOverlay`/`IosShakeListener`
+either way, proving the no-op API parity holds in practice, not just by inspection.
+
+A consuming app's own KMP shared module can use the same pattern:
+
+```kotlin
+val useNoop = System.getenv("CONFIGURATION") == "Release"
+commonMain.dependencies {
+    if (useNoop) {
+        api("io.github.gouravhanumante:heimdall-core-noop:VERSION")
+    } else {
+        api("io.github.gouravhanumante:heimdall-core:VERSION")
+    }
+}
+```
+
+**Limitation**: this only works for a *shared KMP module* built once per Xcode invocation, the way
+`sample/shared` is. It does not (yet) give a plain `com.android.application` module a matching
+Android-side demonstration in this sample — `sample/shared`'s Android target has no build-type
+variance in the newer `com.android.kotlin.multiplatform.library` DSL used here, so it always
+resolves the real modules for Android regardless of build type. A real consumer app that is *not*
+a KMP shared module (a plain `com.android.application`, like most Android apps) doesn't have this
+limitation at all: `debugImplementation`/`releaseImplementation` on the real vs. `-noop` artifacts
+works exactly as documented above, since that's standard, decade-old Android Gradle behavior, not
+something specific to this library.
 
 ## What is not covered yet
 
-- **`heimdall-storage`, `heimdall-database-sqlite`, `heimdall-flags-firebase` have no `-noop`
-  counterpart.** If a release build keeps one of these on the classpath, its code still runs.
-  Concretely: `SqliteFileInspector`'s constructor always opens a real read-only SQLite connection;
-  `DatabaseStore.attach`/`StorageStore.publish` do check `Heimdall.enabled` before doing anything
-  with what's attached (see `heimdall-core`), but the adapter's own setup cost isn't eliminated.
-  Until these have no-op modules, either don't add them to a release build's dependencies, or set
-  `Heimdall.enabled = false` and accept that residual setup cost.
-- **iOS has no build-type-scoped dependency mechanism equivalent to
-  `debugImplementation`/`releaseImplementation`.** The no-op iOS targets (`iosArm64`,
-  `iosSimulatorArm64`) compile for all three covered modules, but *how* a consumer picks the real
-  framework for a debug scheme and the no-op one for a release scheme/archive is unresolved and
-  unverified — this needs to be proven against an inspected release `.ipa`/framework before this
-  doc claims it works, per `.github/instructions/docs.instructions.md` rule 5.
 - **Not verified on a device or in a real release build**, Android or iOS — only JVM host tests
-  (`HeimdallNoopTest`, `HeimdallKtorNoopTest`) and `compileAndroidMain`/`testAndroidHostTest`.
+  and `compileAndroidMain`/`compileKotlinIosSimulatorArm64`.
+- **Room/SQLDelight/raw SQLite adapter richness, Firebase iOS parity, and database search
+  pagination remain separately-tracked gaps** — unrelated to release-safety, see the rest of
+  `docs/TODO.md`.
 
 ## Runtime kill switch
 

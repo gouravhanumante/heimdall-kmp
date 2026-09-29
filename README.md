@@ -19,7 +19,7 @@ Keychain). See [docs/TODO.md](docs/TODO.md) and [docs/platform-support.md](docs/
 | `heimdall-storage` | DataStore/SharedPreferences/UserDefaults/Keystore/Keychain discovery. |
 | `heimdall-database-sqlite` | `DatabaseInspector` adapter for any on-disk SQLite file (Room, SQLDelight, raw). |
 | `heimdall-flags-firebase` | Firebase Remote Config flag adapter (Android). |
-| `heimdall-core-noop`, `heimdall-ui-noop`, `heimdall-network-ktor-noop` | Same-API, do-nothing counterparts for release builds — see `docs/release-builds.md`. |
+| `heimdall-core-noop`, `heimdall-ui-noop`, `heimdall-network-ktor-noop`, `heimdall-storage-noop`, `heimdall-database-sqlite-noop`, `heimdall-flags-firebase-noop` | Same-API, do-nothing counterparts for release builds — see `docs/release-builds.md`. |
 | `sample/androidApp`, `sample/shared`, `sample/iosApp` | Reference integration wiring the modules together. |
 
 See [docs/architecture.md](docs/architecture.md) for the module graph and the design decisions

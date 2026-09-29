@@ -11,14 +11,12 @@ Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
 - **Back handling is platform-hosted.** Android's sample uses `BackHandler` to close the SDK
   inspector first and then return from sample screens; consuming apps must connect their own
   navigation back callback to `HeimdallOverlayController.handleBack()`.
-- **No no-op mirror for `heimdall-storage`, `heimdall-database-sqlite`, `heimdall-flags-firebase`.**
-  `heimdall-core-noop`, `heimdall-ui-noop`, and `heimdall-network-ktor-noop` exist and are
-  JVM-tested; these three collector modules don't have a `-noop` counterpart yet, so their code
-  still runs if kept on a release build's classpath. See `docs/release-builds.md`.
-- **iOS release swap mechanism is unresolved.** The no-op modules compile for `iosArm64`/
-  `iosSimulatorArm64`, but there's no iOS equivalent of `debugImplementation`/
-  `releaseImplementation` proven out yet — how a consumer picks the real framework for a debug
-  scheme and the no-op one for release is still open. See `docs/release-builds.md`.
+- **Sample doesn't demonstrate the Android debug/release swap.** `sample/shared`'s Android target
+  has no build-type variance in the `com.android.kotlin.multiplatform.library` DSL, so it always
+  resolves the real modules for Android. The pattern itself (`debugImplementation`/
+  `releaseImplementation` on a plain `com.android.application`) is standard Android/Gradle
+  behavior, not something specific to Heimdall, and doesn't need proving here — but the sample
+  can't show it without restructuring `sample/shared` to have real Android build-type variants.
 - **Database, logs/crash capture** (chunks 5–7) still need richer adapters and detail interactions.
   Flag overrides are durable with boolean, text, number, and per-flag reset controls.
 - **Database framework adapters.** `DatabaseInspector` is the shared attach/refresh contract.

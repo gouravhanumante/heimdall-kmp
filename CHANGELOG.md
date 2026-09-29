@@ -104,6 +104,13 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   raw SQLite adapter modules remain separate work.
 
 ### Added
+- Added `heimdall-storage-noop`, `heimdall-database-sqlite-noop`, and
+  `heimdall-flags-firebase-noop`: every module now has a `-noop` counterpart. Compile-verified on
+  Android and `iosSimulatorArm64`.
+- iOS debug/release swap is implemented and verified in `sample/shared`: its `build.gradle.kts`
+  picks the `-noop` artifacts when Xcode's `CONFIGURATION` env var is `"Release"` (the real ones
+  otherwise), proven by compiling all three ways (unset/`Debug`/`Release`) — see
+  `docs/release-builds.md`.
 - **Breaking**: `DatabaseQueryRunner`/`DatabaseInspector.query` now take a `sql` string and an
   `args: List<String>` bound to `?` placeholders, instead of `sql` alone. Existing custom
   `DatabaseInspector` implementations must add the `args` parameter to their `query` override.

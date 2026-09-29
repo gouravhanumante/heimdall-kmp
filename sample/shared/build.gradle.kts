@@ -20,13 +20,24 @@ kotlin {
     }
 
     sourceSets {
+        // Xcode sets CONFIGURATION when it runs `embedAndSignAppleFrameworkForXcode` as a build
+        // phase script (see sample/iosApp/project.yml); unset for the Android build and for
+        // ad-hoc `./gradlew compileKotlinIos...` runs, which default to the real modules.
+        val useNoop = System.getenv("CONFIGURATION") == "Release"
+
         commonMain.dependencies {
             // api, not implementation: sample:androidApp needs AndroidShakeListener and
             // HeimdallOverlayController directly, since shake-wiring is host-app code, not
             // something SampleApp() itself can own (it differs per platform).
-            api(projects.heimdallCore)
-            api(projects.heimdallUi)
-            implementation(projects.heimdallNetworkKtor)
+            if (useNoop) {
+                api(projects.heimdallCoreNoop)
+                api(projects.heimdallUiNoop)
+                implementation(projects.heimdallNetworkKtorNoop)
+            } else {
+                api(projects.heimdallCore)
+                api(projects.heimdallUi)
+                implementation(projects.heimdallNetworkKtor)
+            }
             implementation(libs.androidx.sqlite.bundled)
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -46,6 +57,7 @@ kotlin {
         }
     }
 }
+
 
 composeCompiler {
     reportsDestination = layout.buildDirectory.dir("compose-compiler")
