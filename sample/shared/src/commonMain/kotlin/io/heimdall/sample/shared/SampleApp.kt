@@ -24,6 +24,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.ImageLoader
+import coil3.network.ktor3.KtorNetworkFetcherFactory
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -235,10 +238,18 @@ private fun DetailsScreen() {
 }
 
 @Composable
+@OptIn(coil3.annotation.ExperimentalCoilApi::class)
 private fun FeedScreen(client: HttpClient) {
     var feedItems by remember { mutableStateOf(emptyList<FeedItem>()) }
     var loading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    // Same client HeimdallKtor is installed on, so feed images show up in Heimdall.network too.
+    val platformContext = LocalPlatformContext.current
+    val imageLoader = remember(client) {
+        ImageLoader.Builder(platformContext)
+            .components { add(KtorNetworkFetcherFactory(client)) }
+            .build()
+    }
     Column(Modifier.fillMaxSize().padding(24.dp)) {
         Text("Feed and image URLs", fontWeight = FontWeight.Bold, fontSize = 20.sp)
         Text("Loads remote feed data and image URLs into a list.", modifier = Modifier.padding(top = 8.dp))
@@ -257,6 +268,7 @@ private fun FeedScreen(client: HttpClient) {
                     AsyncImage(
                         model = item.imageUrl,
                         contentDescription = item.title,
+                        imageLoader = imageLoader,
                         modifier = Modifier.size(width = 120.dp, height = 80.dp),
                     )
                     Text(item.title, fontWeight = FontWeight.Medium)

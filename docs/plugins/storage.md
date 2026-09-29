@@ -23,7 +23,9 @@ startup appear too. Values of already-attached sources update live.
 | SharedPreferences | Yes | Every file in `shared_prefs/` |
 | Android Keystore | No | Aliases and key algorithm only; key material can't be read by design |
 | UserDefaults | Text values only | App's own keys only (`persistentDomainForName`), no Apple system keys. Suites found by listing `Library/Preferences/*.plist`; app-group suites must be passed in |
-| Keychain | Yes (text values) | Generic-password and internet-password items, shown as `service / account` (internet items are suffixed ` (internet)`). Non-text values show as a byte count. Keys and certificates are not listed |
+| Keychain | Yes (text values) | Generic-password and internet-password items, shown as `service / account` (internet items are suffixed ` (internet)`). Non-text values show as a byte count |
+| Keychain: Keys | No | `kSecClassKey` items, shown as `class=… type=… size=…bits`. Never requests or shows key material |
+| Keychain: Certificates | No | `kSecClassCertificate` items, shown by common name (`SecCertificateCopyCommonName`) where available. Never requests the certificate's raw DER data |
 
 ## Why DataStore needs one line
 

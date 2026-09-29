@@ -14,10 +14,12 @@ import platform.Foundation.NSUserDefaults
 import platform.Foundation.NSUserDefaultsDidChangeNotification
 import platform.Foundation.NSUserDomainMask
 
-/** One call for everything iOS can find on its own: UserDefaults (standard + suites) and Keychain. */
+/** One call for everything iOS can find on its own: UserDefaults (standard + suites) and Keychain
+ * (passwords, keys, certificates). */
 fun Heimdall.discoverStorage(appGroupSuiteNames: List<String> = emptyList()) {
     discoverUserDefaults(appGroupSuiteNames)
     discoverKeychain()
+    discoverKeychainKeysAndCertificates()
 }
 
 /**

@@ -8,3 +8,5 @@ fun Heimdall.discoverStorage(appGroupSuiteNames: List<String> = emptyList()) = U
 fun Heimdall.discoverUserDefaults(appGroupSuiteNames: List<String> = emptyList()) = Unit
 
 fun Heimdall.discoverKeychain() = Unit
+
+fun Heimdall.discoverKeychainKeysAndCertificates() = Unit

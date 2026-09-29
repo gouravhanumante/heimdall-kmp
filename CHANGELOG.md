@@ -104,6 +104,12 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   raw SQLite adapter modules remain separate work.
 
 ### Added
+- Sample's Feed screen now loads images through a Coil `ImageLoader` backed by the same
+  `HttpClient` `HeimdallKtor` is installed on, so feed images show up in `Heimdall.network` instead
+  of bypassing capture through Coil's own fetcher.
+- iOS Keychain discovery now also lists keys (`kSecClassKey`) and certificates
+  (`kSecClassCertificate`), read-only, as separate `Keychain: Keys`/`Keychain: Certificates`
+  sources. Never requests key material or raw certificate data.
 - Added `heimdall-storage-noop`, `heimdall-database-sqlite-noop`, and
   `heimdall-flags-firebase-noop`: every module now has a `-noop` counterpart. Compile-verified on
   Android and `iosSimulatorArm64`.
