@@ -13,8 +13,6 @@ import kotlinx.cinterop.value
 import platform.CoreFoundation.CFArrayGetCount
 import platform.CoreFoundation.CFArrayGetValueAtIndex
 import platform.CoreFoundation.CFArrayRef
-import platform.CoreFoundation.CFBridgingRelease
-import platform.CoreFoundation.CFBridgingRetain
 import platform.CoreFoundation.CFDictionaryAddValue
 import platform.CoreFoundation.CFDictionaryCreateMutable
 import platform.CoreFoundation.CFDictionaryGetValue
@@ -27,6 +25,8 @@ import platform.CoreFoundation.CFTypeRefVar
 import platform.CoreFoundation.kCFBooleanTrue
 import platform.CoreFoundation.kCFTypeDictionaryKeyCallBacks
 import platform.CoreFoundation.kCFTypeDictionaryValueCallBacks
+import platform.Foundation.CFBridgingRelease
+import platform.Foundation.CFBridgingRetain
 import platform.Foundation.NSData
 import platform.Foundation.NSString
 import platform.Foundation.NSUTF8StringEncoding
@@ -36,32 +36,45 @@ import platform.Security.SecItemCopyMatching
 import platform.Security.SecItemUpdate
 import platform.Security.errSecSuccess
 import platform.Security.kSecAttrAccount
+import platform.Security.kSecAttrServer
 import platform.Security.kSecAttrService
 import platform.Security.kSecClass
 import platform.Security.kSecClassGenericPassword
+import platform.Security.kSecClassInternetPassword
 import platform.Security.kSecMatchLimit
 import platform.Security.kSecMatchLimitAll
 import platform.Security.kSecReturnAttributes
 import platform.Security.kSecReturnData
 import platform.Security.kSecValueData
 
-private data class KeychainItem(val service: String?, val account: String?, val value: String)
+private enum class KeychainItemClass { GENERIC_PASSWORD, INTERNET_PASSWORD }
+
+private data class KeychainItem(
+    val itemClass: KeychainItemClass,
+    /** `kSecAttrService` for a generic password, `kSecAttrServer` for an internet password. */
+    val service: String?,
+    val account: String?,
+    val value: String,
+)
 
 /**
- * Lists the app's generic-password Keychain items (what most apps and Keychain wrappers store),
- * shown as "service / account", and lets the panel edit their values. Re-scans when the Storage
- * tab opens. Other item classes (internet passwords, keys, certificates) are not listed.
+ * Lists the app's generic-password and internet-password Keychain items (what most apps and
+ * Keychain wrappers store), shown as "service / account", and lets the panel edit their values.
+ * Re-scans when the Storage tab opens. Keys and certificates are not listed.
  */
 @OptIn(ExperimentalForeignApi::class)
 fun Heimdall.discoverKeychain() {
     fun publish() {
-        val items = readGenericPasswords()
-        val byLabel = items.associateBy { "${it.service ?: "—"} / ${it.account ?: "—"}" }
+        val items = readGenericPasswords() + readInternetPasswords()
+        val byLabel = items.associateBy {
+            val suffix = if (it.itemClass == KeychainItemClass.INTERNET_PASSWORD) " (internet)" else ""
+            "${it.service ?: "—"} / ${it.account ?: "—"}$suffix"
+        }
         storage.publish(
             StorageSnapshot(sourceName = "Keychain", entries = byLabel.mapValues { it.value.value }),
             writer = StorageWriter { label, newValue ->
                 val item = byLabel[label] ?: return@StorageWriter false
-                val updated = updateGenericPassword(item.service, item.account, newValue)
+                val updated = updatePassword(item, newValue)
                 if (updated) publish()
                 updated
             },
@@ -73,9 +86,21 @@ fun Heimdall.discoverKeychain() {
 }
 
 @OptIn(ExperimentalForeignApi::class)
-private fun readGenericPasswords(): List<KeychainItem> = memScoped {
+private fun readGenericPasswords(): List<KeychainItem> =
+    readPasswords(KeychainItemClass.GENERIC_PASSWORD, kSecClassGenericPassword, kSecAttrService)
+
+@OptIn(ExperimentalForeignApi::class)
+private fun readInternetPasswords(): List<KeychainItem> =
+    readPasswords(KeychainItemClass.INTERNET_PASSWORD, kSecClassInternetPassword, kSecAttrServer)
+
+@OptIn(ExperimentalForeignApi::class)
+private fun readPasswords(
+    itemClass: KeychainItemClass,
+    secClass: CFTypeRef?,
+    serviceKey: CFTypeRef?,
+): List<KeychainItem> = memScoped {
     val query = mutableCfDictionary(
-        kSecClass to kSecClassGenericPassword,
+        kSecClass to secClass,
         kSecMatchLimit to kSecMatchLimitAll,
         kSecReturnAttributes to kCFBooleanTrue,
         kSecReturnData to kCFBooleanTrue,
@@ -91,7 +116,8 @@ private fun readGenericPasswords(): List<KeychainItem> = memScoped {
         val dict: CFDictionaryRef = CFArrayGetValueAtIndex(array, index)?.reinterpret() ?: return@mapNotNull null
         val data = bridge(CFDictionaryGetValue(dict, kSecValueData)) as? NSData
         KeychainItem(
-            service = bridge(CFDictionaryGetValue(dict, kSecAttrService)) as? String,
+            itemClass = itemClass,
+            service = bridge(CFDictionaryGetValue(dict, serviceKey)) as? String,
             account = bridge(CFDictionaryGetValue(dict, kSecAttrAccount)) as? String,
             value = data?.let { NSString.create(data = it, encoding = NSUTF8StringEncoding)?.toString() }
                 ?: "«${data?.length ?: 0} bytes, not text»",
@@ -102,15 +128,18 @@ private fun readGenericPasswords(): List<KeychainItem> = memScoped {
 }
 
 @OptIn(ExperimentalForeignApi::class)
-private fun updateGenericPassword(service: String?, account: String?, newValue: String): Boolean {
+private fun updatePassword(item: KeychainItem, newValue: String): Boolean {
     val newData = NSString.create(string = newValue).dataUsingEncoding(NSUTF8StringEncoding) ?: return false
     // CFBridgingRetain hands back +1 references; every one is released below.
-    val serviceRef = service?.let { CFBridgingRetain(it) }
-    val accountRef = account?.let { CFBridgingRetain(it) }
+    val serviceRef = item.service?.let { CFBridgingRetain(it) }
+    val accountRef = item.account?.let { CFBridgingRetain(it) }
     val dataRef = CFBridgingRetain(newData)
 
-    val query = mutableCfDictionary(kSecClass to kSecClassGenericPassword)
-    if (serviceRef != null) CFDictionaryAddValue(query, kSecAttrService, serviceRef)
+    val secClass = if (item.itemClass == KeychainItemClass.INTERNET_PASSWORD) kSecClassInternetPassword else kSecClassGenericPassword
+    val serviceKey = if (item.itemClass == KeychainItemClass.INTERNET_PASSWORD) kSecAttrServer else kSecAttrService
+
+    val query = mutableCfDictionary(kSecClass to secClass)
+    if (serviceRef != null) CFDictionaryAddValue(query, serviceKey, serviceRef)
     if (accountRef != null) CFDictionaryAddValue(query, kSecAttrAccount, accountRef)
     val attributes = mutableCfDictionary(kSecValueData to dataRef)
 

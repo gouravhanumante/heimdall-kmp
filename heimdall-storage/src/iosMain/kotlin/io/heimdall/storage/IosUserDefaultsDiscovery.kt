@@ -22,8 +22,9 @@ fun Heimdall.discoverStorage(appGroupSuiteNames: List<String> = emptyList()) {
 
 /**
  * Publishes the app's standard UserDefaults plus every custom suite, live. Suites are found by
- * listing `Library/Preferences/*.plist`; app-group suites live in the group container instead, so
- * pass their names in [appGroupSuiteNames]. Re-scans when the Storage tab opens.
+ * listing the `.plist` files under `Library/Preferences`; app-group suites live in the group
+ * container instead, so pass their names in [appGroupSuiteNames]. Re-scans when the Storage tab
+ * opens.
  */
 fun Heimdall.discoverUserDefaults(appGroupSuiteNames: List<String> = emptyList()) {
     val bundleId = NSBundle.mainBundle.bundleIdentifier ?: return

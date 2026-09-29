@@ -100,6 +100,8 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   raw SQLite adapter modules remain separate work.
 
 ### Added
+- iOS Keychain discovery now also lists internet-password items (`kSecClassInternetPassword`),
+  not just generic passwords, shown as `service / account (internet)`.
 - The Sessions tab now shows a readable UTC date/time (`formatSessionTimestamp`) instead of raw
   epoch milliseconds.
 - Added `Heimdall.bubblePosition`: the bubble's resting position (as a screen fraction) now
@@ -127,3 +129,10 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   published data.
 - `sample/androidApp`: reference integration wiring `HeimdallOverlay` + `AndroidShakeListener`
   into an Activity.
+
+### Fixed
+- `heimdall-storage`'s iOS Keychain code imported `CFBridgingRetain`/`CFBridgingRelease` from the
+  wrong package (`platform.CoreFoundation` instead of `platform.Foundation`), and a stray `/*` in
+  a KDoc comment (from `` `Library/Preferences/*.plist` ``) made a Kotlin nested block comment
+  swallow the rest of `IosUserDefaultsDiscovery.kt`. Neither had ever been caught, since iOS had
+  never been compiled before — the whole module now compiles cleanly for `iosSimulatorArm64`.

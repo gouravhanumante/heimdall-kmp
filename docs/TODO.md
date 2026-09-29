@@ -31,8 +31,17 @@ Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
   iOS Firebase adapter parity and explicit type metadata for ambiguous string values remain.
 - **`Heimdall.install()` isn't enforced.** Recording before it throws at runtime
   (`HeimdallDatabase.requireConnection()`), not at compile time.
-- **Keychain: only generic-password items.** Internet passwords, keys and certificates aren't
-  listed. Most apps and Keychain wrappers use generic passwords.
+- **Keychain: keys and certificates aren't listed.** Generic-password and internet-password items
+  are (as of this pass); `kSecClassKey`/`kSecClassCertificate` aren't covered.
+- **`sample/shared`'s iOS host (`MainViewController.kt`) fails to compile.** Discovered while
+  verifying an unrelated `heimdall-storage` change: `hitTest` has the wrong override signature,
+  several `CValue<T>`/`T` (e.g. `CGPoint`, `CGRect`) mismatches, missing
+  `@OptIn(ExperimentalForeignApi::class)`, `addChildViewController`/
+  `didMoveToParentViewController`/`UIEventSubtypeMotionShake` unresolved, and
+  `IosShakeListener.motionEndedWithShake()` is `internal` so a different module (the sample) can't
+  call it. Every Heimdall library module (`heimdall-core`, `heimdall-ui`, `heimdall-network-ktor`,
+  `heimdall-storage`, `heimdall-database-sqlite`, and the three `-noop` modules) compiles cleanly
+  for `iosSimulatorArm64` — this is isolated to the sample's own iOS glue code, not the SDK.
 - **Automatic Compose performance instrumentation.** `Heimdall.measure(...)` reports explicit
   durations, and Android/iOS frame timing is implemented. Recomposition counts and automatic
   screen render timing still need a Compose-specific integration with defined overhead limits.
