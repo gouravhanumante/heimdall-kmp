@@ -27,18 +27,34 @@ behind it, and [docs/overlay.md](docs/overlay.md) for exactly what the bubble/pa
 
 ## Install
 
-Add only the modules your app uses. The current release is `0.1.0-alpha01`:
+Start with these two modules. They are the only required dependencies, and you do not add
+Android/iOS-specific artifact names manually:
 
 ```kotlin
 dependencies {
 	debugImplementation("io.github.gouravhanumante:heimdall-core:0.1.0-alpha01")
 	debugImplementation("io.github.gouravhanumante:heimdall-ui:0.1.0-alpha01")
-	debugImplementation("io.github.gouravhanumante:heimdall-network-ktor:0.1.0-alpha01")
-	debugImplementation("io.github.gouravhanumante:heimdall-storage:0.1.0-alpha01")
-	debugImplementation("io.github.gouravhanumante:heimdall-database-sqlite:0.1.0-alpha01")
-	debugImplementation("io.github.gouravhanumante:heimdall-flags-firebase:0.1.0-alpha01") // Android
 }
 ```
+
+Add an optional module only when you need that collector:
+
+| Need | Add |
+|---|---|
+| Network requests made by Ktor | `heimdall-network-ktor` |
+| SharedPreferences, DataStore, UserDefaults, Keychain or Keystore | `heimdall-storage` |
+| Inspect an on-disk SQLite database | `heimdall-database-sqlite` |
+| Firebase Remote Config flags on Android | `heimdall-flags-firebase` |
+
+For example, a Ktor network setup adds one more line:
+
+```kotlin
+debugImplementation("io.github.gouravhanumante:heimdall-network-ktor:0.1.0-alpha01")
+```
+
+Use the same base coordinate on Android and iOS. Kotlin Multiplatform automatically selects the
+correct `android`, `iosarm64`, or `iossimulatorarm64` artifact; consumers never add those
+platform-specific artifacts directly.
 
 At app startup, install Heimdall and wrap your root Compose content:
 
