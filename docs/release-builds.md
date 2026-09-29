@@ -7,6 +7,15 @@ package, same class/function names and signatures — with every body doing noth
 in removes the real implementation's code and dependencies from that build variant entirely; it
 is not a runtime flag, the real code simply isn't there.
 
+The recommended complete bundle is `heimdall`; its release counterpart is `heimdall-noop`. The
+bundle re-exports the six real/no-op modules above, so most consumers only need one dependency per
+variant:
+
+```kotlin
+debugImplementation("io.github.gouravhanumante:heimdall:VERSION")
+releaseImplementation("io.github.gouravhanumante:heimdall-noop:VERSION")
+```
+
 ## Setup (Android)
 
 In the **consuming app's** module (not a Heimdall module), use Android's build-type-scoped
@@ -14,21 +23,14 @@ configurations to pick the real artifact for `debug` and the no-op one for `rele
 
 ```kotlin
 dependencies {
-    debugImplementation("io.github.gouravhanumante:heimdall-core:VERSION")
-    debugImplementation("io.github.gouravhanumante:heimdall-ui:VERSION")
-    debugImplementation("io.github.gouravhanumante:heimdall-network-ktor:VERSION")
-    debugImplementation("io.github.gouravhanumante:heimdall-storage:VERSION")
-    debugImplementation("io.github.gouravhanumante:heimdall-database-sqlite:VERSION")
-    debugImplementation("io.github.gouravhanumante:heimdall-flags-firebase:VERSION")
-
-    releaseImplementation("io.github.gouravhanumante:heimdall-core-noop:VERSION")
-    releaseImplementation("io.github.gouravhanumante:heimdall-ui-noop:VERSION")
-    releaseImplementation("io.github.gouravhanumante:heimdall-network-ktor-noop:VERSION")
-    releaseImplementation("io.github.gouravhanumante:heimdall-storage-noop:VERSION")
-    releaseImplementation("io.github.gouravhanumante:heimdall-database-sqlite-noop:VERSION")
-    releaseImplementation("io.github.gouravhanumante:heimdall-flags-firebase-noop:VERSION")
+    debugImplementation("io.github.gouravhanumante:heimdall:VERSION")
+    releaseImplementation("io.github.gouravhanumante:heimdall-noop:VERSION")
 }
 ```
+
+Consumers who intentionally use individual modules should use the matching six real modules in
+`debugImplementation` and six `-noop` modules in `releaseImplementation` instead; never mix the
+bundle with its component artifacts in the same variant.
 
 **Never add both the real and the `-noop` artifact of the same module to one variant.** They
 declare the same classes in the same package and will fail to link.

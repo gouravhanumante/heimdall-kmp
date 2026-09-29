@@ -41,6 +41,8 @@ include(":heimdall-network-ktor-noop")
 include(":heimdall-storage-noop")
 include(":heimdall-database-sqlite-noop")
 include(":heimdall-flags-firebase-noop")
+include(":heimdall")
+include(":heimdall-noop")
 
 include(":sample:shared")
 include(":sample:androidApp")

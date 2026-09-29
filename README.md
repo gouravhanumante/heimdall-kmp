@@ -19,7 +19,9 @@ crashes, and feature-flag overrides. See [docs/TODO.md](docs/TODO.md) and
 | `heimdall-storage` | DataStore/SharedPreferences/UserDefaults/Keystore/Keychain discovery. |
 | `heimdall-database-sqlite` | `DatabaseInspector` adapter for any on-disk SQLite file (Room, SQLDelight, raw). |
 | `heimdall-flags-firebase` | Firebase Remote Config flag adapter (Android). |
+| `heimdall` | Recommended complete bundle: core, UI, network, storage, SQLite, and Android Firebase flags. |
 | `heimdall-core-noop`, `heimdall-ui-noop`, `heimdall-network-ktor-noop`, `heimdall-storage-noop`, `heimdall-database-sqlite-noop`, `heimdall-flags-firebase-noop` | Same-API, do-nothing counterparts for release builds — see `docs/release-builds.md`. |
+| `heimdall-noop` | Complete no-op bundle for release variants. |
 | `sample/androidApp`, `sample/shared`, `sample/iosApp` | Reference integration wiring the modules together. |
 
 See [docs/architecture.md](docs/architecture.md) for the module graph and the design decisions
@@ -32,12 +34,13 @@ Android/iOS-specific artifact names manually:
 
 ```kotlin
 dependencies {
-	debugImplementation("io.github.gouravhanumante:heimdall-core:0.1.0-alpha01")
-	debugImplementation("io.github.gouravhanumante:heimdall-ui:0.1.0-alpha01")
+	debugImplementation("io.github.gouravhanumante:heimdall:0.1.0-alpha02")
 }
 ```
 
-Add an optional module only when you need that collector:
+The umbrella includes Core, UI, Ktor network capture, storage discovery, SQLite inspection, and
+the Android Firebase flag adapter. Add an individual module only when you deliberately want a
+smaller custom footprint:
 
 | Need | Add |
 |---|---|
@@ -49,7 +52,7 @@ Add an optional module only when you need that collector:
 For example, a Ktor network setup adds one more line:
 
 ```kotlin
-debugImplementation("io.github.gouravhanumante:heimdall-network-ktor:0.1.0-alpha01")
+debugImplementation("io.github.gouravhanumante:heimdall-network-ktor:0.1.0-alpha02")
 ```
 
 Use the same base coordinate on Android and iOS. Kotlin Multiplatform automatically selects the

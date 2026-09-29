@@ -1,16 +1,27 @@
 # Integration
 
-`0.1.0-alpha01` is published to Maven Central. The coordinates are:
+`0.1.0-alpha02` is the next release containing the complete umbrella artifacts. The recommended
+coordinate is:
 
 ```kotlin
 dependencies {
-    implementation("io.github.gouravhanumante:heimdall-core:0.1.0-alpha01")
-    implementation("io.github.gouravhanumante:heimdall-ui:0.1.0-alpha01")
+    debugImplementation("io.github.gouravhanumante:heimdall:0.1.0-alpha02")
+}
+```
+
+The umbrella includes core, UI, Ktor network capture, storage, SQLite database inspection, and
+the Android Firebase flag adapter. Individual module coordinates remain available for consumers
+that need a smaller dependency footprint:
+
+```kotlin
+dependencies {
+    implementation("io.github.gouravhanumante:heimdall-core:0.1.0-alpha02")
+    implementation("io.github.gouravhanumante:heimdall-ui:0.1.0-alpha02")
     // add only the collector modules you use:
-    implementation("io.github.gouravhanumante:heimdall-network-ktor:0.1.0-alpha01")
-    implementation("io.github.gouravhanumante:heimdall-storage:0.1.0-alpha01")
-    implementation("io.github.gouravhanumante:heimdall-database-sqlite:0.1.0-alpha01")
-    implementation("io.github.gouravhanumante:heimdall-flags-firebase:0.1.0-alpha01") // Android only
+    implementation("io.github.gouravhanumante:heimdall-network-ktor:0.1.0-alpha02")
+    implementation("io.github.gouravhanumante:heimdall-storage:0.1.0-alpha02")
+    implementation("io.github.gouravhanumante:heimdall-database-sqlite:0.1.0-alpha02")
+    implementation("io.github.gouravhanumante:heimdall-flags-firebase:0.1.0-alpha02") // Android only
 }
 ```
 

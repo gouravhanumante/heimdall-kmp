@@ -6,6 +6,11 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
 ## Unreleased
 
 ### Added
+- Added `heimdall` and `heimdall-noop` umbrella artifacts. Most consumers can now use one real
+  dependency for debug builds and one no-op dependency for release builds; the umbrella includes
+  core, UI, Ktor network capture, storage, SQLite inspection, and the Android Firebase flag adapter.
+
+### Added
 - Logs tab: severity filter chips (All, Crashes, Error, Warn, Info, Debug, Verbose) above the
   search field. Tapping a crash row now opens a detail screen showing the full stack trace
   (`CrashRecord.stackTraceText`) in a copyable monospace block — previously only the exception
