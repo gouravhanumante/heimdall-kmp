@@ -15,13 +15,13 @@ data class DatabaseSnapshot(
 )
 
 fun interface DatabaseQueryRunner {
-    fun query(sql: String): DatabaseTable
+    fun query(sql: String, args: List<String>): DatabaseTable
 }
 
 interface DatabaseInspector {
     val databaseName: String
     fun snapshot(): DatabaseSnapshot
-    fun query(sql: String): DatabaseTable
+    fun query(sql: String, args: List<String> = emptyList()): DatabaseTable
 }
 
 class DatabaseStore internal constructor() {

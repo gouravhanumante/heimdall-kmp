@@ -46,6 +46,32 @@ class SqliteFileInspectorTest {
     }
 
     @Test
+    fun `query binds args instead of concatenating them into the SQL`() {
+        seedDatabase()
+        inspector = SqliteFileInspector(databaseName = "app.db", path = path)
+
+        val result = inspector!!.query("SELECT name FROM users WHERE name = ?", listOf("Ada"))
+
+        assertEquals(listOf(listOf("Ada")), result.rows)
+    }
+
+    /** A value shaped like a SQL injection payload must be treated as inert data when bound as an
+     * arg, not as SQL \u2014 the users table must still exist and be queryable afterward. */
+    @Test
+    fun `a bound arg shaped like a SQL injection payload is treated as literal data`() {
+        seedDatabase()
+        inspector = SqliteFileInspector(databaseName = "app.db", path = path)
+
+        val result = inspector!!.query(
+            "SELECT name FROM users WHERE name = ?",
+            listOf("x'; DROP TABLE users; --"),
+        )
+
+        assertEquals(emptyList(), result.rows)
+        assertEquals(2, inspector!!.snapshot().tables.single().rows.size)
+    }
+
+    @Test
     fun `query runs a read-only statement`() {
         seedDatabase()
         inspector = SqliteFileInspector(databaseName = "app.db", path = path)

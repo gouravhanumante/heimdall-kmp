@@ -339,7 +339,7 @@ private class SampleDatabaseInspector : DatabaseInspector {
         listOf(readUsers(), readProfiles()),
     )
 
-    override fun query(sql: String): DatabaseTable = readUsers()
+    override fun query(sql: String, args: List<String>): DatabaseTable = readUsers()
 
     private fun readUsers(): DatabaseTable {
         val statement = connection.prepare("SELECT id, name, status FROM users ORDER BY id")

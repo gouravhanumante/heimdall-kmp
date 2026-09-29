@@ -100,6 +100,14 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   raw SQLite adapter modules remain separate work.
 
 ### Added
+- **Breaking**: `DatabaseQueryRunner`/`DatabaseInspector.query` now take a `sql` string and an
+  `args: List<String>` bound to `?` placeholders, instead of `sql` alone. Existing custom
+  `DatabaseInspector` implementations must add the `args` parameter to their `query` override.
+  The Database tab's search box now runs a live, bound query against every column of the real
+  table (via `Heimdall.database.queryRunnerFor(...)`) instead of only filtering whatever rows the
+  initial snapshot happened to load, so a match outside that snapshot is no longer invisible.
+  Falls back to filtering the snapshot if no query runner is available. See
+  `docs/plugins/database.md`.
 - iOS Keychain discovery now also lists internet-password items (`kSecClassInternetPassword`),
   not just generic passwords, shown as `service / account (internet)`.
 - The Sessions tab now shows a readable UTC date/time (`formatSessionTimestamp`) instead of raw

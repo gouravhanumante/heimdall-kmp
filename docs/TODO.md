@@ -48,9 +48,16 @@ Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
 - **Runtime Compose recomposition counters.** Official compiler reports are enabled for `heimdall-ui`
   and the shared sample under `build/compose-compiler`; those are static stability facts, not
   runtime counts. A versioned optional compiler instrumentation plugin is still needed for strict
-  runtime recomposition measurements.
+  runtime recomposition measurements. Confirmed design constraint: a Kotlin compiler plugin can
+  only instrument a consumer's compilation if their build script applies it
+  (`id("io.heimdall.recomposition")` or similar) — there is no way to get this "for free" from
+  just adding a library dependency, the same way Compose itself needs
+  `org.jetbrains.kotlin.plugin.compose` applied explicitly. Not started.
 - **Sample image requests are not yet routed through HeimdallKtor.** Coil loads them through its
   own configured fetcher, while the sample API/feed calls use the Heimdall-installed Ktor client.
-- **Database search is currently snapshot filtering.** The UI filters loaded table rows on
-  `Dispatchers.Default`, but true million-row search needs a paged, read-only query contract so
-  filtering happens in the app database rather than after materializing every row.
+- **Database search has no pagination.** Search now runs live against the real table (a bound
+  `LIKE` query per column, see `docs/plugins/database.md`), so it's no longer limited to whatever
+  the initial snapshot happened to load — but results are still capped at 200 rows with no
+  "load more" or scroll-triggered paging. Deliberately deferred: fixing "search misses rows outside
+  the snapshot" was the actual correctness bug; scrolling through unbounded results is a separate,
+  larger UI feature.

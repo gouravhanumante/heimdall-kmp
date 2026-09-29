@@ -549,18 +549,19 @@ private fun DatabaseTab(snapshots: List<io.heimdall.core.DatabaseSnapshot>) {
 
     var selectedDatabase by remember { mutableStateOf<String?>(null) }
     var selectedTable by remember { mutableStateOf<String?>(null) }
-    val table = snapshots.firstOrNull { it.databaseName == selectedDatabase }
+    val databaseName = selectedDatabase
+    val table = snapshots.firstOrNull { it.databaseName == databaseName }
         ?.tables?.firstOrNull { it.name == selectedTable }
 
-    if (table != null && selectedDatabase != null) {
+    if (table != null && databaseName != null) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { selectedTable = null }, modifier = Modifier.semantics { contentDescription = "Back to tables" }) {
                     Text("←", color = HeimdallDesign.onSurfaceVariant, fontSize = 22.sp)
                 }
-                Text("$selectedDatabase / ${table.name}", color = HeimdallDesign.onSurface, fontWeight = FontWeight.Bold)
+                Text("$databaseName / ${table.name}", color = HeimdallDesign.onSurface, fontWeight = FontWeight.Bold)
             }
-            DatabaseTableGrid(table)
+            DatabaseTableGrid(databaseName = databaseName, table = table)
         }
         return
     }
@@ -588,16 +589,12 @@ private fun DatabaseTab(snapshots: List<io.heimdall.core.DatabaseSnapshot>) {
 }
 
 @Composable
-private fun DatabaseTableGrid(table: io.heimdall.core.DatabaseTable) {
+private fun DatabaseTableGrid(databaseName: String, table: io.heimdall.core.DatabaseTable) {
     var query by remember { mutableStateOf("") }
-    val filteredRows by produceState(initialValue = table.rows, query, table.rows) {
+    val filteredRows by produceState(initialValue = table.rows, query, table, databaseName) {
         value = withContext(Dispatchers.Default) {
-            val normalized = query.trim().lowercase()
-            if (normalized.isEmpty()) {
-                table.rows
-            } else {
-                table.rows.filter { row -> row.any { it.orEmpty().lowercase().contains(normalized) } }
-            }
+            val trimmed = query.trim()
+            if (trimmed.isEmpty()) table.rows else searchTable(databaseName, table, trimmed)
         }
     }
     val scrollState = rememberScrollState()
@@ -620,6 +617,35 @@ private fun DatabaseTableGrid(table: io.heimdall.core.DatabaseTable) {
             }
         }
     }
+}
+
+/**
+ * Reaches the real table through the database's own [io.heimdall.core.DatabaseQueryRunner]
+ * instead of filtering the (possibly truncated) rows already loaded into [table] — a table with
+ * more rows than fit in one snapshot can still be searched this way. Falls back to filtering
+ * [table]'s already-loaded rows if no runner was published, or if the query fails.
+ */
+private fun searchTable(databaseName: String, table: io.heimdall.core.DatabaseTable, searchText: String): List<List<String?>> {
+    val runner = Heimdall.database.queryRunnerFor(databaseName)
+    if (runner == null || table.columns.isEmpty()) return filterRowsLocally(table.rows, searchText)
+    val (sql, args) = buildSearchQuery(table.name, table.columns, searchText)
+    return runCatching { runner.query(sql, args).rows }.getOrElse { filterRowsLocally(table.rows, searchText) }
+}
+
+private fun filterRowsLocally(rows: List<List<String?>>, searchText: String): List<List<String?>> {
+    val normalized = searchText.lowercase()
+    return rows.filter { row -> row.any { it.orEmpty().lowercase().contains(normalized) } }
+}
+
+/** Builds `SELECT * FROM <table> WHERE <col> LIKE ? OR <col> LIKE ? ... LIMIT <limit>`, one bound
+ * `?` per column so [searchText] is never concatenated into the SQL itself. `%`/`_`/`\` in
+ * [searchText] are escaped so they match literally rather than as LIKE wildcards. */
+internal fun buildSearchQuery(tableName: String, columns: List<String>, searchText: String, limit: Int = 200): Pair<String, List<String>> {
+    fun quoteIdentifier(name: String) = "\"${name.replace("\"", "\"\"")}\""
+    val pattern = "%${searchText.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")}%"
+    val whereClause = columns.joinToString(" OR ") { column -> "${quoteIdentifier(column)} LIKE ? ESCAPE '\\'" }
+    val sql = "SELECT * FROM ${quoteIdentifier(tableName)} WHERE $whereClause LIMIT $limit"
+    return sql to List(columns.size) { pattern }
 }
 
 @Composable

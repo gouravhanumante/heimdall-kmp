@@ -17,8 +17,10 @@ data class DatabaseSnapshot(
 
 fun interface DatabaseQueryRunner {
     /** Run a read-only SQL statement against the live database and return column names + rows.
-     * Throws on invalid SQL or a non-SELECT statement — the collector decides what to allow. */
-    fun query(sql: String): DatabaseTable
+     * [args] are bound to `?` placeholders in order — always prefer this over concatenating
+     * user-provided text into [sql], which would be a SQL injection vector. Throws on invalid SQL
+     * or a non-SELECT statement — the collector decides what to allow. */
+    fun query(sql: String, args: List<String>): DatabaseTable
 }
 
 interface DatabaseInspector {
@@ -27,8 +29,9 @@ interface DatabaseInspector {
     /** Return a bounded, read-only view of the database's current tables and rows. */
     fun snapshot(): DatabaseSnapshot
 
-    /** Run a read-only query using the app database's own driver or framework. */
-    fun query(sql: String): DatabaseTable
+    /** Run a read-only query using the app database's own driver or framework. See
+     * [DatabaseQueryRunner.query] for why [args] exists. */
+    fun query(sql: String, args: List<String> = emptyList()): DatabaseTable
 }
 
 class DatabaseStore internal constructor() {

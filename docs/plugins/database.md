@@ -33,14 +33,33 @@ flag — it never touches the app's writer connection and cannot write to the fi
 - **Tables**: every table in `sqlite_master`, except SQLite/Room housekeeping tables
   (`sqlite_sequence`, `android_metadata`, `room_master_table`).
 - **Rows**: up to `maxRowsPerTable` (default 200) per table, in whatever order `SELECT *` returns.
-- **Ad-hoc query**: `SqliteFileInspector.query(sql)` accepts only `SELECT`, `PRAGMA`, `EXPLAIN`,
-  or `WITH` statements, and only one statement at a time; anything else throws
-  `IllegalArgumentException` before it reaches the connection.
+  This first load is a snapshot, not live — see "Search" below for what reaches the rest of the
+  table.
+- **Ad-hoc query**: `SqliteFileInspector.query(sql, args)` accepts only `SELECT`, `PRAGMA`,
+  `EXPLAIN`, or `WITH` statements, and only one statement at a time; anything else throws
+  `IllegalArgumentException` before it reaches the connection. `args` bind to `?` placeholders in
+  the SQL — always prefer this over building `sql` by concatenating untrusted text into it.
 - **Blob columns** show as `<blob NB>` (byte count), not raw bytes, since there is no useful text
   form. Every other type is read through SQLite's own text conversion.
 
+## Search
+
+Typing in a table's search box does **not** filter the snapshot rows already loaded — a match
+outside the first `maxRowsPerTable` rows would be invisible if it did. Instead it calls
+`Heimdall.database.queryRunnerFor(databaseName)` and runs a live, bound query against every column
+(`... WHERE "col1" LIKE ? OR "col2" LIKE ? ... LIMIT 200`, one bound arg per column, `%`/`_`/`\`
+in the search text escaped so they match literally). The search text is never concatenated into
+the SQL string itself (`HeimdallPanel`'s `buildSearchQuery`, proved by
+`DatabaseSearchQueryTest`: a SQL-injection-shaped search string never appears in the built SQL,
+only as a bound argument; `SqliteFileInspectorTest` proves the same end-to-end through the bound
+`?` actually reaching SQLite). Falls back to filtering the loaded snapshot rows if no query runner
+was published, or if the live query fails for any reason. Results are capped at 200 rows; there is
+no further pagination ("load more") yet — see `docs/TODO.md`.
+
 ## Verification status
 
-`SqliteFileInspectorTest`: 5 JVM tests (snapshot contents, blob/null formatting, read-only
-statement rejection, single-statement rejection, and the read-only-connection proof above). Not
+`SqliteFileInspectorTest`: 7 JVM tests (snapshot contents, blob/null formatting, bound-argument
+querying including a SQL-injection-payload proof, read-only statement rejection, single-statement
+rejection, and the read-only-connection proof above). `DatabaseSearchQueryTest` (in `heimdall-ui`):
+4 JVM tests for the search-query builder. Not
 yet run on a device or against a real Room/SQLDelight database.

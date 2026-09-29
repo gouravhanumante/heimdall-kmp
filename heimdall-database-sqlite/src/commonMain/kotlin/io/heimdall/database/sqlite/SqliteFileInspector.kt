@@ -34,10 +34,11 @@ class SqliteFileInspector(
     override fun snapshot(): DatabaseSnapshot =
         DatabaseSnapshot(databaseName, tableNames().map(::readTable))
 
-    override fun query(sql: String): DatabaseTable {
+    override fun query(sql: String, args: List<String>): DatabaseTable {
         requireReadOnlyStatement(sql)
         val statement = connection.prepare(sql)
         return try {
+            args.forEachIndexed { index, arg -> statement.bindText(index + 1, arg) }
             readResult(name = "result", statement)
         } finally {
             statement.close()
