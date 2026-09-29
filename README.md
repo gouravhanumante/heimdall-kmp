@@ -4,10 +4,10 @@ In-app debug inspector for Kotlin Multiplatform / Compose Multiplatform apps —
 database, storage, logs, crashes and feature-flag overrides, behind a floating bubble you can
 drag away to hide and bring back with a shake.
 
-**Status: pre-alpha, nothing run on a device yet.** Built so far: the overlay (bubble, tap to
-open, drag to hide, shake-to-recall on Android, empty panel), Heimdall's own 24-hour history
-database, Ktor network capture, and storage (DataStore, SharedPreferences, Keystore, UserDefaults,
-Keychain). See [docs/TODO.md](docs/TODO.md) and [docs/platform-support.md](docs/platform-support.md).
+**Status: alpha.** Android and iOS simulator builds are verified; the reference sample exercises
+the overlay, session history, Ktor network capture, SQLite database inspection, storage, logs,
+crashes, and feature-flag overrides. See [docs/TODO.md](docs/TODO.md) and
+[docs/platform-support.md](docs/platform-support.md) for platform-specific verification status.
 
 ## Modules
 
@@ -27,8 +27,31 @@ behind it, and [docs/overlay.md](docs/overlay.md) for exactly what the bubble/pa
 
 ## Install
 
-See [docs/integration.md](docs/integration.md) for Gradle coordinates and setup. Not published to
-Maven Central yet — see that doc for status.
+Add only the modules your app uses. The current release is `0.1.0-alpha01`:
+
+```kotlin
+dependencies {
+	debugImplementation("io.github.gouravhanumante:heimdall-core:0.1.0-alpha01")
+	debugImplementation("io.github.gouravhanumante:heimdall-ui:0.1.0-alpha01")
+	debugImplementation("io.github.gouravhanumante:heimdall-network-ktor:0.1.0-alpha01")
+	debugImplementation("io.github.gouravhanumante:heimdall-storage:0.1.0-alpha01")
+}
+```
+
+At app startup, install Heimdall and wrap your root Compose content:
+
+```kotlin
+Heimdall.install(PlatformContext(this)) // Android; PlatformContext() on iOS
+
+HeimdallOverlay {
+	YourAppContent()
+}
+```
+
+For database inspection add `heimdall-database-sqlite`; for Firebase Remote Config add
+`heimdall-flags-firebase` on Android. See [docs/integration.md](docs/integration.md) for the
+complete module list and [docs/release-builds.md](docs/release-builds.md) for replacing real
+modules with `-noop` artifacts in release variants.
 
 ## Try it
 

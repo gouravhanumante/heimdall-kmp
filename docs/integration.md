@@ -1,20 +1,6 @@
 # Integration
 
-**Not published to Maven Central yet.** The Gradle plugin wiring (`com.vanniktech.maven.publish`,
-POM metadata, signing tasks) is in place and verified — `./gradlew :heimdall-core:tasks` lists
-real `publishToMavenCentral`/`publishToMavenLocal` tasks, and
-`generatePomFileFor*Publication` produces a correct POM (coordinates, license, developer, SCM) —
-but nothing has actually been pushed to Central yet. That needs, separately from this repo:
-
-- A verified Central Portal namespace for `io.github.gouravhanumante`.
-- A GPG signing key (`signAllPublications()` requires one) — `gpg --full-generate-key` to create
-  one, then `gpg --export-secret-keys --armor <key id>` to get the value for
-  `signingInMemoryKey` below.
-- A Central Portal user token (`mavenCentralUsername`/`mavenCentralPassword`) generated at
-  https://central.sonatype.com/account, plus `signingInMemoryKey`/`signingInMemoryKeyPassword`
-  for the GPG key above — all four go in `~/.gradle/gradle.properties`, never committed.
-
-Once published, the coordinates will be:
+`0.1.0-alpha01` is published to Maven Central. The coordinates are:
 
 ```kotlin
 dependencies {
