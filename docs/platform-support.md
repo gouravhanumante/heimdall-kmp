@@ -5,9 +5,9 @@ One row per feature. "Verified" means run and observed on that platform, not jus
 | Feature | Android | iOS |
 |---|---|---|
 | `heimdall-core`/`heimdall-ui` compile for the platform | Compiles | Compiles (`iosSimulatorArm64`) |
-| Bubble: drag, tap to open, drag to bottom to hide | Rewritten, not compiled by me yet, not run | `heimdall-ui` compiles for `iosSimulatorArm64` (verified this session). The sample's iOS host (`MainViewController.kt`) currently fails to compile — see docs/TODO.md |
-| Shake-to-recall | Implemented, not run on a device. `ShakeDetector` logic unit-tested | `IosShakeListener` (`heimdall-core`) compiles for `iosSimulatorArm64`. The sample's UIKit responder host that's meant to feed it currently fails to compile — see docs/TODO.md |
-| Panel shell (tabs, close button) | Not run on a device | `heimdall-ui` compiles for `iosSimulatorArm64`; no working iOS host to show it in yet (see above) |
+| Bubble: drag, tap to open, drag to bottom to hide | Rewritten, not compiled by me yet, not run | Compiles for `iosSimulatorArm64`, including the sample's iOS host (`MainViewController.kt`, verified this session); not run |
+| Shake-to-recall | Implemented, not run on a device. `ShakeDetector` logic unit-tested | `IosShakeListener.notifyShakeDetected()` plus the sample's `ShakeHostViewController` responder-chain forwarding compile for `iosSimulatorArm64`; not run |
+| Panel shell (tabs, close button) | Not run on a device | `heimdall-ui` and the sample's iOS host compile for `iosSimulatorArm64`; not run |
 | Overlay lives above native screens/sheets | Not supported: `HeimdallOverlay` wraps the root composable, so Compose `Dialog`/`ModalBottomSheet`/`Popup` (own windows) cover the bubble | Partial: default is the same shared overlay; opt-in sample `MainViewControllerWithNativeOverlayWindow()` hosts it in a separate `UIWindow` — implemented, not run |
 | Network capture (Ktor plugin) | Implemented, JVM-tested with `MockEngine`. No UI yet | Compiles. Not run |
 | Persistence (own SQLite DB, sessions, retention) | Implemented, JVM-tested (`sqlite-bundled-jvm` for host tests) | Compiles (`sqlite-bundled` for `iosArm64`/`iosSimulatorArm64`). Not run |

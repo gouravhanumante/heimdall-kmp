@@ -6,6 +6,10 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
 ## Unreleased
 
 ### Changed
+- **Breaking**: `IosShakeListener`'s internal `motionEndedWithShake()` is now the public
+  `notifyShakeDetected()` — a consumer's own `UIResponder.motionEnded` override must call this to
+  forward `UIEventSubtypeMotionShake`, and `internal` never actually let that compile across the
+  module boundary. Mirrored in `heimdall-core-noop`.
 - Pinned Compose Multiplatform to `1.10.0` and Coil to `3.5.0` so Android artifacts remain
   compatible with AGP `9.0.1` and compileSdk `36`.
 - **Breaking**: all stores now persist to Heimdall's own on-disk SQLite database (Android:
@@ -139,6 +143,12 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   into an Activity.
 
 ### Fixed
+- `sample/shared`'s iOS host (`MainViewController.kt`) now compiles: wrong `hitTest` override
+  signature, several `CValue<T>`/`T` mismatches (`CGPoint`, `CGRect`), missing
+  `@OptIn(ExperimentalForeignApi::class)`, and `addChildViewController`/
+  `didMoveToParentViewController` needing an explicit import (they're extension functions in this
+  Kotlin/Native UIKit binding, not members) were all fixed. Every Heimdall module, including the
+  full sample, now compiles for `iosSimulatorArm64` and Android in the same tree.
 - `heimdall-storage`'s iOS Keychain code imported `CFBridgingRetain`/`CFBridgingRelease` from the
   wrong package (`platform.CoreFoundation` instead of `platform.Foundation`), and a stray `/*` in
   a KDoc comment (from `` `Library/Preferences/*.plist` ``) made a Kotlin nested block comment

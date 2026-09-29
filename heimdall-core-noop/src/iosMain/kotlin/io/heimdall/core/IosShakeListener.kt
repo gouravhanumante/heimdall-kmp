@@ -4,4 +4,5 @@ package io.heimdall.core
 class IosShakeListener(onShake: () -> Unit) {
     fun start() = Unit
     fun stop() = Unit
+    fun notifyShakeDetected() = Unit
 }
