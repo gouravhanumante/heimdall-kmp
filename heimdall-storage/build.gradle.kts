@@ -6,7 +6,7 @@ plugins {
 
 mavenPublishing {
     publishToMavenCentral()
-    signAllPublications()
+    if (providers.gradleProperty("signingInMemoryKey").isPresent) signAllPublications()
     coordinates(group.toString(), "heimdall-storage", version.toString())
     pom {
         name.set("Heimdall Storage")

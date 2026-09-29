@@ -8,7 +8,7 @@ plugins {
 
 mavenPublishing {
     publishToMavenCentral()
-    signAllPublications()
+    if (providers.gradleProperty("signingInMemoryKey").isPresent) signAllPublications()
     coordinates(group.toString(), "heimdall-ui", version.toString())
     pom {
         name.set("Heimdall UI")

@@ -6,7 +6,7 @@ plugins {
 
 mavenPublishing {
     publishToMavenCentral()
-    signAllPublications()
+    if (providers.gradleProperty("signingInMemoryKey").isPresent) signAllPublications()
     coordinates(group.toString(), "heimdall-network-ktor-noop", version.toString())
     pom {
         name.set("Heimdall Network (Ktor) (no-op)")

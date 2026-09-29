@@ -104,6 +104,20 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   raw SQLite adapter modules remain separate work.
 
 ### Added
+- Bumped Gradle to `9.5.1` and AGP to `9.1.1` (from `9.1.0`/`9.0.1`) to match a real consuming
+  app used to test integration via a Gradle composite build
+  (`includeBuild` + `dependencySubstitution`) — Gradle disallows mixing AGP versions across
+  included builds. Verified: full test suite, iOS compile sweep, and the sample all still pass;
+  a separate test app resolves and builds a full debug APK against this Heimdall checkout with
+  real usage (`Heimdall.install`, `discoverStorage`, `HeimdallOverlay`, `AndroidShakeListener`).
+- `signAllPublications()` is now conditional on a `signingInMemoryKey` Gradle property being
+  present, so `publishToMavenLocal` works for local testing without a GPG key — previously it
+  failed outright (`Cannot perform signing task ... no configured signatory`) even for local-only
+  publishing.
+- `heimdall-flags-firebase`/`-noop` now use `JavadocJar.Empty()` instead of Dokka-generated docs:
+  Dokka crashes (`PermittedSubclasses requires ASM9`) reading `FlagValue`'s sealed-class bytecode
+  on this Kotlin/JDK combination. The javadoc jar artifact still exists (Central requires one),
+  it's just empty rather than real API docs for these two modules.
 - Added `LICENSE` (Apache-2.0, matching what README already claimed) and wired up
   `com.vanniktech.maven.publish` with POM metadata (license, developer, SCM) on all 12 publishable
   modules, coordinates under `io.github.gouravhanumante`, starting at `0.1.0-alpha01`. Verified:

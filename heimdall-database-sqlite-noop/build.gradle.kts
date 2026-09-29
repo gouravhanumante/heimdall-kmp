@@ -6,7 +6,7 @@ plugins {
 
 mavenPublishing {
     publishToMavenCentral()
-    signAllPublications()
+    if (providers.gradleProperty("signingInMemoryKey").isPresent) signAllPublications()
     coordinates(group.toString(), "heimdall-database-sqlite-noop", version.toString())
     pom {
         name.set("Heimdall Database (SQLite) (no-op)")

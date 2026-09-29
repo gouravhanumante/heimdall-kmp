@@ -5,7 +5,14 @@ plugins {
 
 mavenPublishing {
     publishToMavenCentral()
-    signAllPublications()
+    if (providers.gradleProperty("signingInMemoryKey").isPresent) signAllPublications()
+    // Empty, not Dokka-generated: Dokka can't read FlagValue's sealed-class bytecode
+    // ("PermittedSubclasses requires ASM9") on this Kotlin/JDK combination.
+    configure(com.vanniktech.maven.publish.AndroidSingleVariantLibrary(
+        javadocJar = com.vanniktech.maven.publish.JavadocJar.Empty(),
+        sourcesJar = com.vanniktech.maven.publish.SourcesJar.Sources(),
+        variant = "release",
+    ))
     coordinates(group.toString(), "heimdall-flags-firebase-noop", version.toString())
     pom {
         name.set("Heimdall Flags (Firebase) (no-op)")
