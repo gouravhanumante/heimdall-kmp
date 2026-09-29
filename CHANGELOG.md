@@ -104,6 +104,12 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   raw SQLite adapter modules remain separate work.
 
 ### Added
+- Added `LICENSE` (Apache-2.0, matching what README already claimed) and wired up
+  `com.vanniktech.maven.publish` with POM metadata (license, developer, SCM) on all 12 publishable
+  modules, coordinates under `io.github.gouravhanumante`, starting at `0.1.0-alpha01`. Verified:
+  `generatePomFileFor*Publication` produces a correct POM and `publishToMavenCentral`/
+  `publishToMavenLocal` tasks exist for every module. **Not yet published** — see
+  `docs/integration.md` for what's still needed (Central Portal namespace, GPG key, user token).
 - Sample's Feed screen now loads images through a Coil `ImageLoader` backed by the same
   `HttpClient` `HeimdallKtor` is installed on, so feed images show up in `Heimdall.network` instead
   of bypassing capture through Coil's own fetcher.

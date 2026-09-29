@@ -25,6 +25,11 @@ Keychain). See [docs/TODO.md](docs/TODO.md) and [docs/platform-support.md](docs/
 See [docs/architecture.md](docs/architecture.md) for the module graph and the design decisions
 behind it, and [docs/overlay.md](docs/overlay.md) for exactly what the bubble/panel does.
 
+## Install
+
+See [docs/integration.md](docs/integration.md) for Gradle coordinates and setup. Not published to
+Maven Central yet — see that doc for status.
+
 ## Try it
 
 ```
@@ -34,9 +39,9 @@ behind it, and [docs/overlay.md](docs/overlay.md) for exactly what the bubble/pa
 ## Release builds
 
 Every module above always runs its real implementation — do not add them to a release build's
-dependencies as-is. `heimdall-core`, `heimdall-ui`, and `heimdall-network-ktor` have a `-noop`
-counterpart to swap in via `releaseImplementation` instead; see
-[docs/release-builds.md](docs/release-builds.md) for exactly what is and isn't covered yet.
+dependencies as-is. Every module has a `-noop` counterpart to swap in via `releaseImplementation`
+instead; see [docs/release-builds.md](docs/release-builds.md) for exactly what is and isn't
+covered yet.
 
 ## License
 
