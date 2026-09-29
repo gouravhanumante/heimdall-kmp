@@ -35,6 +35,8 @@ dependencies {
 	debugImplementation("io.github.gouravhanumante:heimdall-ui:0.1.0-alpha01")
 	debugImplementation("io.github.gouravhanumante:heimdall-network-ktor:0.1.0-alpha01")
 	debugImplementation("io.github.gouravhanumante:heimdall-storage:0.1.0-alpha01")
+	debugImplementation("io.github.gouravhanumante:heimdall-database-sqlite:0.1.0-alpha01")
+	debugImplementation("io.github.gouravhanumante:heimdall-flags-firebase:0.1.0-alpha01") // Android
 }
 ```
 
@@ -52,6 +54,57 @@ For database inspection add `heimdall-database-sqlite`; for Firebase Remote Conf
 `heimdall-flags-firebase` on Android. See [docs/integration.md](docs/integration.md) for the
 complete module list and [docs/release-builds.md](docs/release-builds.md) for replacing real
 modules with `-noop` artifacts in release variants.
+
+### Optional integrations
+
+Install `HeimdallKtor` on every Ktor client whose traffic you want to capture:
+
+```kotlin
+val client = HttpClient {
+	install(HeimdallKtor)
+}
+```
+
+Discover platform storage once after installing Heimdall:
+
+```kotlin
+// Android
+Heimdall.discoverStorage(this)
+
+// iOS
+Heimdall.discoverStorage()
+```
+
+Attach an on-disk SQLite database using the optional database module. The path must be the path
+to the app's existing database file; Heimdall opens a separate read-only connection:
+
+```kotlin
+Heimdall.database.attach(
+	SqliteFileInspector(databaseName = "app.db", path = databasePath),
+)
+```
+
+For Firebase Remote Config on Android, attach the adapter to your existing provider and use the
+returned provider for flag reads:
+
+```kotlin
+val flags = FirebaseRemoteConfig.getInstance().attachToHeimdall()
+val enabled = flags.get("new_checkout", FlagValue.BoolValue(false))
+```
+
+The core API also accepts app-reported logs, crashes, events, screen names, and explicit timing:
+
+```kotlin
+Heimdall.log(LogLevel.INFO, "Checkout", "Started checkout")
+Heimdall.recordCrash(throwable, isFatal = false)
+Heimdall.setCurrentScreen("Checkout")
+Heimdall.measure("load_checkout") { loadCheckout() }
+```
+
+For production variants, replace each real module with the matching `-noop` artifact. The app
+keeps the same call sites, but the overlay and capture implementations are absent from the
+release binary. See [docs/release-builds.md](docs/release-builds.md) for Android custom variants
+and the iOS `CONFIGURATION`-based swap.
 
 ## Try it
 
