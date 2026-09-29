@@ -25,8 +25,10 @@ class EventStore internal constructor() {
     private val _current = MutableStateFlow<List<HeimdallEvent>>(emptyList())
     val current: StateFlow<List<HeimdallEvent>> = _current
 
+    /** No-ops (doesn't throw) if [Heimdall.install] hasn't been called yet — `Heimdall.event(...)`
+     * and `Heimdall.measure(...)` must never crash the app's own code around them. */
     fun record(event: HeimdallEvent) {
-        if (!Heimdall.enabled) return
+        if (!Heimdall.enabled || !HeimdallDatabase.isOpen()) return
         val boundedEvent = event.copy(
             name = event.name.take(MAX_NAME_LENGTH),
             screen = event.screen?.take(MAX_SCREEN_LENGTH),

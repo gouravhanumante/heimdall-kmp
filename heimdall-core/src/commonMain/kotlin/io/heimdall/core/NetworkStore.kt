@@ -34,8 +34,11 @@ class NetworkStore internal constructor() {
     private val _current = MutableStateFlow<List<NetworkRecord>>(emptyList())
     val current: StateFlow<List<NetworkRecord>> = _current
 
+    /** No-ops (doesn't throw) if [Heimdall.install] hasn't been called yet — this runs from a
+     * Ktor plugin hook, so throwing here would crash the app's real network call, not just fail
+     * to record it. */
     fun record(entry: NetworkRecord) {
-        if (!Heimdall.enabled) return
+        if (!Heimdall.enabled || !HeimdallDatabase.isOpen()) return
         val sessionId = Heimdall.currentSessionId
         HeimdallDatabase.write { conn ->
             insert(conn, sessionId, entry)

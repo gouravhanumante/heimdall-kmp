@@ -39,12 +39,16 @@ Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
   install, `pod install` in CI, and could conflict with the sample's existing setup) that deserves
   its own discussion, not a quiet add. Explicit type metadata for ambiguous string values on
   Android also remains.
-- **`Heimdall.install()` isn't enforced at compile time**, only at runtime
-  (`HeimdallDatabase.requireConnection()` throws immediately, so this fails loudly and
-  immediately on first use — not silently — but a consumer only finds out by running the
-  code). True compile-time enforcement would need a different API shape (e.g. every call routed
-  through a scope object `install()` returns), which is a breaking API redesign, not a small fix —
-  not attempted without discussing that tradeoff first.
+- **`Heimdall.install()` isn't enforced at compile time**, only at runtime — and deliberately not
+  by crashing. `Heimdall.log`/`event`/`measure`/`screen` and network capture (`NetworkStore.record`)
+  silently no-op if called before `install()`, so a forgotten `install()` call can never crash a
+  real network request or an otherwise-working log call (it used to: recording called
+  `HeimdallDatabase.requireConnection()`, which threw straight out through, e.g., the Ktor plugin's
+  `on(Send)` hook — see `NotInstalledTest`, which proves this no longer throws). Explicit reads
+  (`Heimdall.sessions()`) still throw, since those are direct developer calls, not something
+  automatically invoked by instrumented code paths. True compile-time enforcement (e.g. routing
+  every call through a scope object `install()` returns) remains a breaking API redesign, not
+  attempted without discussing that tradeoff first — user confirmed runtime-safe is enough for now.
 - **Automatic Compose performance instrumentation.** `Heimdall.measure(...)` reports explicit
   durations, and Android/iOS frame timing is implemented. Recomposition counts and automatic
   screen render timing still need a Compose-specific integration with defined overhead limits.

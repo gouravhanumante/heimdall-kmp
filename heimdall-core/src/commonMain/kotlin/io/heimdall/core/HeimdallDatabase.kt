@@ -144,6 +144,15 @@ internal object HeimdallDatabase {
             conn.execSQL("DELETE FROM sessions")
         }
     }
+
+    /** Test-only: closes the connection and forgets it, simulating "install() never called" for a
+     * test that needs that state — otherwise, once any test in the process opens the (shared,
+     * singleton) database, it stays open for every test that runs after it. */
+    fun closeForTests() {
+        connection?.close()
+        connection = null
+        lastPrunedAtMillis = null
+    }
 }
 
 internal fun SQLiteConnection.lastInsertRowId(): Long {

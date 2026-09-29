@@ -34,8 +34,10 @@ class LogStore internal constructor() {
     private val _current = MutableStateFlow<List<LogEntry>>(emptyList())
     val current: StateFlow<List<LogEntry>> = _current
 
+    /** No-ops (doesn't throw) if [Heimdall.install] hasn't been called yet — a forgotten install()
+     * must never crash an otherwise-working `Heimdall.log(...)` call site. */
     fun record(entry: LogEntry) {
-        if (!Heimdall.enabled) return
+        if (!Heimdall.enabled || !HeimdallDatabase.isOpen()) return
         val sessionId = Heimdall.currentSessionId
         HeimdallDatabase.write { conn ->
             insert(conn, sessionId, entry)

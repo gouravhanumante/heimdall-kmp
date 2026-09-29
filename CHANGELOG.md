@@ -156,6 +156,13 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   into an Activity.
 
 ### Fixed
+- **A forgotten `Heimdall.install()` call could crash real app functionality, not just fail to
+  record.** `NetworkStore`/`LogStore`/`EventStore.record()` called `HeimdallDatabase.write`, which
+  threw `IllegalStateException` if the database wasn't open yet — and since `NetworkStore.record`
+  runs from `HeimdallKtor`'s `on(Send)` hook with no surrounding `try`/`catch`, that exception
+  propagated straight out through the app's own network call. These three now no-op instead
+  (`Heimdall.measure`/`screen` still run and return their block either way). Proved by
+  `NotInstalledTest`: reverting the guard turns it red with exactly that exception.
 - `sample/shared`'s iOS host (`MainViewController.kt`) now compiles: wrong `hitTest` override
   signature, several `CValue<T>`/`T` mismatches (`CGPoint`, `CGRect`), missing
   `@OptIn(ExperimentalForeignApi::class)`, and `addChildViewController`/
