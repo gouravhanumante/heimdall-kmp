@@ -55,10 +55,12 @@ ever been shown — the store's `record`/`publish` call is what writes, not anyt
 
 Retention: history older than **24 hours** (`HeimdallDatabase.RETENTION_MILLIS`) is deleted at
 startup and at most once an hour while the app runs (`pruneIfDue`). A launch older than 24 hours
-stays while it still has newer rows (a process left running across days). Per-session caps
-(`HeimdallDatabase.MAX_*`) additionally drop the oldest rows in a launch once exceeded, as a disk
-safety net. Long-term crash history is out of scope — use a crash reporter such as Firebase
-Crashlytics for that.
+stays while it still has newer rows (a process left running across days). Independently, only the
+most recent **3 launches** (`SessionRepository.MAX_RETAINED_SESSIONS`) are ever kept — every new
+`Heimdall.install(...)` prunes anything beyond that, regardless of the 24-hour window, so the
+session picker stays a short, memorable list. Per-session caps (`HeimdallDatabase.MAX_*`)
+additionally drop the oldest rows in a launch once exceeded, as a disk safety net. Long-term crash
+history is out of scope — use a crash reporter such as Firebase Crashlytics for that.
 
 ### History vs. live state
 
@@ -77,9 +79,9 @@ in-memory `mutableMapOf`/`StateFlow` state only (see their source).
 
 Different per collector, decided per docs.instructions.md before building each one:
 - **Overlay**: consumer wraps their root composable in `HeimdallOverlay { }` (explicit, no magic).
-- **Platform hooks**: `Heimdall.install(context)` installs Android uncaught-crash capture and live
-  Choreographer frame monitoring automatically. The UI host still owns shake-to-recall because core
-  must not depend on the UI module.
+- **Platform hooks**: `Heimdall.install(context)` installs Android uncaught-crash capture
+  automatically. The UI host still owns shake-to-recall because core must not depend on the UI
+  module. There is deliberately no automatic frame/jank monitoring — see `docs/TODO.md` for why.
 - **Screen attribution**: consumer calls `Heimdall.setCurrentScreen(...)`, uses
   `Heimdall.screen("Name") { ... }` for a scoped block, or passes an explicit screen name to
   `Heimdall.event(...)`. Heimdall does not infer screen ownership automatically.

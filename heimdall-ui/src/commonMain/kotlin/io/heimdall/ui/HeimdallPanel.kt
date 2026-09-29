@@ -1,5 +1,6 @@
 package io.heimdall.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -19,10 +20,26 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -40,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -55,29 +73,24 @@ import io.heimdall.core.HealthMetric
 import io.heimdall.core.HealthRules
 import io.heimdall.core.HealthStatus
 import io.heimdall.core.Heimdall
+import io.heimdall.core.LogLevel
 import io.heimdall.ui.generated.resources.Res
 import io.heimdall.ui.generated.resources.heimdall_horn_logo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.painterResource
 
-private data class PanelDestination(val title: String, val glyph: String)
+private data class PanelDestination(val title: String, val icon: ImageVector)
 
 private val panelDestinations = listOf(
-    PanelDestination("Overview", "⌂"),
-    PanelDestination("Network", "↗"),
-    PanelDestination("Database", "▦"),
-    PanelDestination("Storage", "▤"),
-    PanelDestination("Logs", "≡"),
-    PanelDestination("Flags", "⚑"),
-    PanelDestination("Sessions", "◷"),
+    PanelDestination("Overview", Icons.Filled.Home),
+    PanelDestination("Network", Icons.Filled.Wifi),
+    PanelDestination("Database", Icons.Filled.Storage),
+    PanelDestination("Storage", Icons.Filled.Save),
+    PanelDestination("Logs", Icons.AutoMirrored.Filled.List),
+    PanelDestination("Flags", Icons.Filled.Flag),
+    PanelDestination("Sessions", Icons.Filled.History),
 )
-private val PanelBackground = HeimdallDesign.background
-private val RailBackground = HeimdallDesign.surfaceVariant
-private val RailAccent = HeimdallDesign.primary
-private val CodeBackground = HeimdallDesign.code
-private val TableHeader = HeimdallDesign.surfaceVariant
-private val TableRow = HeimdallDesign.surface
 
 @Composable
 fun HeimdallPanel(onClose: () -> Unit, modifier: Modifier = Modifier) {
@@ -85,6 +98,8 @@ fun HeimdallPanel(onClose: () -> Unit, modifier: Modifier = Modifier) {
     var selectedTab by remember { mutableStateOf(0) }
     var selectedSessionId by remember { mutableStateOf<Long?>(null) }
     var selectedNetworkRecord by remember { mutableStateOf<io.heimdall.core.NetworkRecord?>(null) }
+    var selectedDatabaseTable by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var selectedCrash by remember { mutableStateOf<io.heimdall.core.CrashRecord?>(null) }
     val sessions = Heimdall.sessions()
     val networkRecords by Heimdall.network.current.collectAsState()
     val storageSnapshots by Heimdall.storage.current.collectAsState()
@@ -92,7 +107,6 @@ fun HeimdallPanel(onClose: () -> Unit, modifier: Modifier = Modifier) {
     val crashes by Heimdall.crashes.current.collectAsState()
     val events by Heimdall.events.current.collectAsState()
     val performance by Heimdall.performance.current.collectAsState()
-    val frameRecords by Heimdall.performance.frames.collectAsState()
     val databaseSnapshots by Heimdall.database.current.collectAsState()
     val flagDefinitions = Heimdall.flags.definitions()
     val currentSession = sessions.firstOrNull()
@@ -114,7 +128,6 @@ fun HeimdallPanel(onClose: () -> Unit, modifier: Modifier = Modifier) {
     val displayedCrashes = if (selectedSessionId == null) crashes else historicalCrashes
     val displayedEvents = if (selectedSessionId == null) events else historicalEvents
     val displayedPerformance = if (selectedSessionId == null) performance else emptyList()
-    val displayedFrames = if (selectedSessionId == null) frameRecords else emptyList()
 
     LaunchedEffect(selectedTab) {
         if (selectedTab == 2) Heimdall.database.refreshAll()
@@ -158,12 +171,12 @@ fun HeimdallPanel(onClose: () -> Unit, modifier: Modifier = Modifier) {
                             text = panelDestinations[selectedTab].title,
                             color = palette.onBackground,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
+                            fontSize = HeimdallDesign.screenTitleSize,
                         )
                         Text(
                             text = "${Heimdall.currentScreen ?: "Global"}${if (hasCrash) " • crash" else ""}",
-                            color = if (hasCrash) palette.error else palette.success,
-                            fontSize = 12.sp,
+                            color = if (hasCrash) palette.error else palette.onSurfaceVariant,
+                            fontSize = HeimdallDesign.labelSize,
                             modifier = Modifier.padding(top = 2.dp),
                         )
                     }
@@ -171,7 +184,7 @@ fun HeimdallPanel(onClose: () -> Unit, modifier: Modifier = Modifier) {
                         onClick = onClose,
                         modifier = Modifier.semantics { contentDescription = "Close inspector" },
                     ) {
-                        Text("×", color = palette.onSurfaceVariant, fontSize = 24.sp)
+                        Icon(Icons.Filled.Close, contentDescription = null, tint = palette.onSurfaceVariant, modifier = Modifier.size(HeimdallDesign.iconSize))
                     }
                 }
 
@@ -187,30 +200,70 @@ fun HeimdallPanel(onClose: () -> Unit, modifier: Modifier = Modifier) {
                         panelDestinations.forEachIndexed { index, destination ->
                             RailButton(
                                 destination = destination,
+                                palette = palette,
                                 selected = selectedTab == index,
-                                onClick = { selectedTab = index },
+                                onClick = {
+                                    selectedTab = index
+                                    // Tapping a tab's own icon always lands on that tab's top-level
+                                    // view, even if you were already there, drilled into a detail.
+                                    when (index) {
+                                        1 -> selectedNetworkRecord = null
+                                        2 -> selectedDatabaseTable = null
+                                        4 -> selectedCrash = null
+                                    }
+                                },
                             )
                         }
                     }
 
-                    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                        when (selectedTab) {
-                            0 -> OverviewTab(displayedNetwork, displayedLogs, displayedCrashes, displayedEvents, displayedPerformance, displayedFrames) { selectedTab = it }
-                            1 -> if (selectedNetworkRecord == null) {
-                                NetworkTab(displayedNetwork) { selectedNetworkRecord = it }
-                            } else {
-                                NetworkDetail(selectedNetworkRecord!!) { selectedNetworkRecord = null }
+                    Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        if (selectedSessionId != null) {
+                            val currentIndex = sessions.indexOfFirst { it.id == Heimdall.currentSessionId }
+                            val viewedIndex = sessions.indexOfFirst { it.id == selectedSessionId }
+                            HistoricalSessionBanner(palette, sessionLabel(viewedIndex, currentIndex)) { selectedSessionId = null }
+                        }
+                        Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                            when (selectedTab) {
+                                0 -> OverviewTab(palette, displayedNetwork, displayedCrashes, displayedPerformance) { selectedTab = it }
+                                1 -> if (selectedNetworkRecord == null) {
+                                    NetworkTab(palette, displayedNetwork) { selectedNetworkRecord = it }
+                                } else {
+                                    NetworkDetail(palette, selectedNetworkRecord!!) { selectedNetworkRecord = null }
+                                }
+                                2 -> if (selectedSessionId == null) DatabaseTab(palette, databaseSnapshots, selectedDatabaseTable) { selectedDatabaseTable = it } else HistoryOnlyNotice(palette)
+                                3 -> if (selectedSessionId == null) StorageTab(palette, storageSnapshots) else HistoryOnlyNotice(palette)
+                                4 -> LogsTab(palette, displayedLogs, displayedCrashes, selectedCrash) { selectedCrash = it }
+                                5 -> if (selectedSessionId == null) FlagsTab(palette, flagDefinitions) else HistoryOnlyNotice(palette)
+                                6 -> SessionsTab(palette, sessions, selectedSessionId) { selectedSessionId = it }
                             }
-                            2 -> if (selectedSessionId == null) DatabaseTab(databaseSnapshots) else HistoryOnlyNotice()
-                            3 -> if (selectedSessionId == null) StorageTab(storageSnapshots) else HistoryOnlyNotice()
-                            4 -> LogsTab(displayedLogs, displayedCrashes)
-                            5 -> if (selectedSessionId == null) FlagsTab(flagDefinitions) else HistoryOnlyNotice()
-                            6 -> SessionsTab(sessions, selectedSessionId) { selectedSessionId = it }
                         }
                     }
                 }
             }
         }
+        }
+    }
+}
+
+@Composable
+private fun HistoricalSessionBanner(palette: HeimdallPalette, sessionLabel: String, onBackToLive: () -> Unit) {
+    Surface(
+        color = palette.primaryContainer,
+        shape = RoundedCornerShape(HeimdallDesign.corner),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).clickable(onClick = onBackToLive),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Viewing ${sessionLabel.replaceFirstChar { it.lowercase() }} — not live",
+                color = palette.onPrimaryContainer,
+                fontWeight = FontWeight.Bold,
+                fontSize = HeimdallDesign.labelSize,
+                modifier = Modifier.weight(1f),
+            )
+            Text("Back to live", color = palette.onPrimaryContainer, fontWeight = FontWeight.Bold, fontSize = HeimdallDesign.labelSize)
         }
     }
 }
@@ -218,6 +271,7 @@ fun HeimdallPanel(onClose: () -> Unit, modifier: Modifier = Modifier) {
 @Composable
 private fun RailButton(
     destination: PanelDestination,
+    palette: HeimdallPalette,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -225,116 +279,90 @@ private fun RailButton(
         modifier = Modifier
             .padding(bottom = 6.dp)
             .size(40.dp)
-            .background(if (selected) RailAccent else Color.Transparent, RoundedCornerShape(10.dp))
+            .background(if (selected) palette.primary else Color.Transparent, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .semantics { contentDescription = destination.title },
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = destination.glyph,
-            color = if (selected) HeimdallDesign.onPrimary else HeimdallDesign.onSurfaceVariant,
-            fontSize = 20.sp,
+        Icon(
+            destination.icon,
+            contentDescription = null,
+            tint = if (selected) palette.onPrimary else palette.onSurfaceVariant,
+            modifier = Modifier.size(HeimdallDesign.iconSize),
         )
     }
 }
 
 @Composable
 private fun OverviewTab(
+    palette: HeimdallPalette,
     networkRecords: List<io.heimdall.core.NetworkRecord>,
-    logs: List<io.heimdall.core.LogEntry>,
     crashes: List<io.heimdall.core.CrashRecord>,
-    events: List<io.heimdall.core.HeimdallEvent>,
     performance: List<io.heimdall.core.PerformanceRecord>,
-    frames: List<io.heimdall.core.FrameRecord>,
     onNavigate: (Int) -> Unit,
 ) {
-    val health = HealthRules.current(networkRecords, crashes, performance, frames)
+    val health = HealthRules.current(networkRecords, crashes, performance)
     Column {
-        Text("Current session", color = Color.White, fontWeight = FontWeight.Bold)
-        Text("${networkRecords.size} network calls", color = HeimdallDesign.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
-        Text("${logs.size} logs", color = HeimdallDesign.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
-        Text("${crashes.count { it.isFatal }} fatal crashes", color = HeimdallDesign.error, modifier = Modifier.padding(top = 4.dp))
-        Text("${events.size} timeline events", color = HeimdallDesign.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
-        Text(
-            "${performance.count { it.durationMillis >= 200 }} slow operations",
-            color = if (performance.any { it.durationMillis >= 200 }) HeimdallDesign.warning else HeimdallDesign.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp),
-        )
-        Text(
-            "${frames.count { it.durationMillis > 16 }} slow frames",
-            color = if (frames.any { it.durationMillis > 16 }) HeimdallDesign.warning else HeimdallDesign.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp),
-        )
-        frames.maxByOrNull { it.durationMillis }?.let { worstFrame ->
-            Text(
-                "Worst frame: ${worstFrame.durationMillis} ms",
-                color = HeimdallDesign.warning,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
-        performance.maxByOrNull { it.durationMillis }?.let { slowest ->
-            Text(
-                "Slowest: ${slowest.name} (${slowest.durationMillis} ms)",
-                color = HeimdallDesign.warning,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
-        Text("Health", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp))
-        health.forEach { HealthMetricRow(it) }
-        Text("Quick access", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp))
+        SectionTitle("Health", palette)
+        health.forEach { HealthMetricRow(palette, it) }
+        SectionTitle("Quick access", palette, modifier = Modifier.padding(top = 18.dp))
         Row(modifier = Modifier.padding(top = 8.dp)) {
             listOf(
-                PanelDestination("Network", "↗") to 1,
-                PanelDestination("Database", "▦") to 2,
-                PanelDestination("Storage", "▤") to 3,
-                PanelDestination("Logs", "≡") to 4,
+                PanelDestination("Network", Icons.Filled.Wifi) to 1,
+                PanelDestination("Database", Icons.Filled.Storage) to 2,
+                PanelDestination("Storage", Icons.Filled.Save) to 3,
+                PanelDestination("Logs", Icons.AutoMirrored.Filled.List) to 4,
             ).forEach { (destination, tab) ->
                 Surface(
-                    color = HeimdallDesign.surface,
+                    color = palette.surface,
                     shape = RoundedCornerShape(HeimdallDesign.corner),
+                    border = BorderStroke(1.dp, palette.border),
                     modifier = Modifier.padding(end = 6.dp).clickable { onNavigate(tab) },
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(8.dp)) {
-                        Text(destination.glyph, color = HeimdallDesign.primary, fontSize = 18.sp)
-                        Text(destination.title, color = HeimdallDesign.onSurfaceVariant, fontSize = 9.sp)
+                        Icon(destination.icon, contentDescription = null, tint = palette.primary, modifier = Modifier.size(HeimdallDesign.smallIconSize))
+                        Text(destination.title, color = palette.onSurfaceVariant, fontSize = HeimdallDesign.captionSize, modifier = Modifier.padding(top = 4.dp))
                     }
                 }
             }
         }
         val issueCount = crashes.count { it.isFatal } + networkRecords.count { it.isError } +
-            performance.count { it.durationMillis >= 200 } + frames.count { it.durationMillis > 16 }
+            performance.count { it.durationMillis >= 200 }
         if (issueCount > 0) {
-            Text("Needs attention", color = HeimdallDesign.warning, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp))
-            if (crashes.any { it.isFatal }) IssueSurface("Fatal crash recorded", HeimdallDesign.error) { onNavigate(4) }
-            if (networkRecords.any { it.isError }) IssueSurface("Failed network request", HeimdallDesign.error) { onNavigate(1) }
-            if (performance.any { it.durationMillis >= 200 }) IssueSurface("Slow operation detected", HeimdallDesign.warning) { onNavigate(0) }
-            if (frames.any { it.durationMillis > 16 }) IssueSurface("Slow frame detected", HeimdallDesign.warning) { onNavigate(0) }
+            SectionTitle("Needs attention", palette, color = palette.warning, modifier = Modifier.padding(top = 18.dp))
+            if (crashes.any { it.isFatal }) IssueSurface(palette, "Fatal crash recorded", palette.error) { onNavigate(4) }
+            if (networkRecords.any { it.isError }) IssueSurface(palette, "Failed network request", palette.error) { onNavigate(1) }
+            if (performance.any { it.durationMillis >= 200 }) IssueSurface(palette, "Slow operation detected", palette.warning) { onNavigate(0) }
         }
     }
 }
 
 @Composable
-private fun HealthMetricRow(metric: HealthMetric) {
+private fun SectionTitle(text: String, palette: HeimdallPalette, color: Color = palette.onBackground, modifier: Modifier = Modifier) {
+    Text(text, color = color, fontWeight = FontWeight.Bold, fontSize = HeimdallDesign.sectionTitleSize, modifier = modifier)
+}
+
+@Composable
+private fun HealthMetricRow(palette: HeimdallPalette, metric: HealthMetric) {
     val accent = when (metric.status) {
-        HealthStatus.OK -> HeimdallDesign.success
-        HealthStatus.WARNING -> HeimdallDesign.warning
-        HealthStatus.CRITICAL -> HeimdallDesign.error
-        HealthStatus.UNAVAILABLE -> HeimdallDesign.onSurfaceVariant
+        HealthStatus.OK -> palette.success
+        HealthStatus.WARNING -> palette.warning
+        HealthStatus.CRITICAL -> palette.error
+        HealthStatus.UNAVAILABLE -> palette.onSurfaceVariant
     }
     Surface(
-        color = HeimdallDesign.surface,
+        color = palette.surface,
         shape = RoundedCornerShape(HeimdallDesign.corner),
-        modifier = Modifier.fillMaxWidth().padding(top = 5.dp),
+        border = BorderStroke(1.dp, palette.border),
+        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
     ) {
         Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(metric.label, color = HeimdallDesign.onSurface, fontSize = 12.sp, modifier = Modifier.weight(1f))
-            Text(metric.displayValue, color = accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text(metric.label, color = palette.onSurface, fontSize = HeimdallDesign.bodySize, modifier = Modifier.weight(1f))
+            Text(metric.displayValue, color = accent, fontWeight = FontWeight.Bold, fontSize = HeimdallDesign.bodySize)
             Text(
                 text = if (metric.confidence == io.heimdall.core.MetricConfidence.MEASURED) "Measured" else "Unavailable",
-                color = HeimdallDesign.onSurfaceVariant,
-                fontSize = 10.sp,
+                color = palette.onSurfaceVariant,
+                fontSize = HeimdallDesign.captionSize,
                 modifier = Modifier.padding(start = 8.dp),
             )
         }
@@ -342,50 +370,60 @@ private fun HealthMetricRow(metric: HealthMetric) {
 }
 
 @Composable
-private fun IssueSurface(message: String, accent: Color, onClick: () -> Unit) {
+private fun IssueSurface(palette: HeimdallPalette, message: String, accent: Color, onClick: () -> Unit) {
     Surface(
-        color = HeimdallDesign.surface,
+        color = palette.surface,
         shape = RoundedCornerShape(HeimdallDesign.corner),
+        border = BorderStroke(1.dp, palette.border),
         modifier = Modifier.fillMaxWidth().padding(top = 6.dp).clickable(onClick = onClick),
     ) {
-        Text(message, color = accent, fontSize = 12.sp, modifier = Modifier.padding(10.dp))
+        Text(message, color = accent, fontSize = HeimdallDesign.bodySize, modifier = Modifier.padding(10.dp))
     }
 }
 
 @Composable
 private fun SessionsTab(
+    palette: HeimdallPalette,
     sessions: List<io.heimdall.core.Session>,
     selectedSessionId: Long?,
     onSelect: (Long?) -> Unit,
 ) {
     if (sessions.isEmpty()) {
-        EmptyState("No sessions recorded")
+        EmptyState(palette, "No sessions recorded")
         return
     }
 
-    LazyColumn {
-        items(sessions) { session ->
-            val isCurrent = session.id == Heimdall.currentSessionId && selectedSessionId == null
+    val currentIndex = sessions.indexOfFirst { it.id == Heimdall.currentSessionId }
+    LazyColumn(modifier = Modifier.fillMaxWidth()) {
+        itemsIndexed(sessions) { index, session ->
+            val isViewed = session.id == (selectedSessionId ?: Heimdall.currentSessionId)
             Surface(
-                color = if (isCurrent) HeimdallDesign.primaryContainer else HeimdallDesign.surface,
+                color = if (isViewed) palette.primaryContainer else palette.surface,
                 shape = RoundedCornerShape(HeimdallDesign.corner),
+                border = BorderStroke(1.dp, palette.border),
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).clickable {
                     onSelect(if (session.id == Heimdall.currentSessionId) null else session.id)
                 },
             ) {
                 Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("◷", color = HeimdallDesign.primary, fontSize = 20.sp)
+                    Icon(Icons.Filled.History, contentDescription = null, tint = if (isViewed) palette.onPrimaryContainer else palette.primary, modifier = Modifier.size(HeimdallDesign.iconSize))
                     Column(modifier = Modifier.padding(start = 10.dp)) {
                         Text(
-                            if (isCurrent) "Current session" else "Session ${session.id}",
-                            color = HeimdallDesign.onSurface,
+                            sessionLabel(index, currentIndex),
+                            color = if (isViewed) palette.onPrimaryContainer else palette.onSurface,
                             fontWeight = FontWeight.Bold,
+                            fontSize = HeimdallDesign.bodySize,
                         )
-                        Text(
-                            "Started ${formatSessionTimestamp(session.startedAtMillis)}${if (session.crashed) " • crashed" else ""}",
-                            color = if (session.crashed) HeimdallDesign.error else HeimdallDesign.onSurfaceVariant,
-                            fontSize = 11.sp,
-                        )
+                        Row {
+                            Text(
+                                "Started ${formatSessionTimestamp(session.startedAtMillis)}${if (session.crashed) " • crashed" else ""}",
+                                color = if (session.crashed) palette.error else if (isViewed) palette.onPrimaryContainer else palette.onSurfaceVariant,
+                                fontSize = HeimdallDesign.labelSize,
+                            )
+                            if (isViewed) {
+                                Text(" • viewing", color = palette.onPrimaryContainer, fontWeight = FontWeight.Bold, fontSize = HeimdallDesign.labelSize)
+                            }
+                        }
                     }
                 }
             }
@@ -393,30 +431,42 @@ private fun SessionsTab(
     }
 }
 
-@Composable
-private fun HistoryOnlyNotice() {
-    EmptyState("This section shows live state only. Select Current session to view it.")
+
+/** "Current session" / "Previous session" / "N sessions ago" instead of a raw, meaningless
+ * database id — [index] and [currentIndex] are positions in the newest-first session list. */
+private fun sessionLabel(index: Int, currentIndex: Int): String {
+    val stepsAgo = if (currentIndex >= 0) index - currentIndex else index + 1
+    return when {
+        stepsAgo <= 0 -> "Current session"
+        stepsAgo == 1 -> "Previous session"
+        else -> "$stepsAgo sessions ago"
+    }
 }
 
 @Composable
-private fun TimelineTab(events: List<io.heimdall.core.HeimdallEvent>) {
+private fun HistoryOnlyNotice(palette: HeimdallPalette) {
+    EmptyState(palette, "This section shows live state only. Select Current session to view it.")
+}
+
+@Composable
+private fun TimelineTab(palette: HeimdallPalette, events: List<io.heimdall.core.HeimdallEvent>) {
     if (events.isEmpty()) {
-        EmptyState("No timeline events recorded")
+        EmptyState(palette, "No timeline events recorded")
         return
     }
 
-    LazyColumn {
+    LazyColumn(modifier = Modifier.fillMaxWidth()) {
         items(events) { event ->
             Column(modifier = Modifier.padding(bottom = 12.dp)) {
-                Text(event.name, color = Color.White, fontWeight = FontWeight.Medium)
+                Text(event.name, color = palette.onBackground, fontWeight = FontWeight.Medium, fontSize = HeimdallDesign.bodySize)
                 event.screen?.let {
-                    Text("Screen: $it", color = HeimdallDesign.onSurfaceVariant, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
+                    Text("Screen: $it", color = palette.onSurfaceVariant, fontSize = HeimdallDesign.labelSize, modifier = Modifier.padding(top = 4.dp))
                 }
                 if (event.attributes.isNotEmpty()) {
                     Text(
                         text = event.attributes.entries.joinToString { (key, value) -> "$key=$value" },
-                        color = HeimdallDesign.onSurfaceVariant,
-                        fontSize = 12.sp,
+                        color = palette.onSurfaceVariant,
+                        fontSize = HeimdallDesign.labelSize,
                         modifier = Modifier.padding(top = 4.dp),
                     )
                 }
@@ -427,6 +477,7 @@ private fun TimelineTab(events: List<io.heimdall.core.HeimdallEvent>) {
 
 @Composable
 private fun NetworkTab(
+    palette: HeimdallPalette,
     records: List<io.heimdall.core.NetworkRecord>,
     onSelect: (io.heimdall.core.NetworkRecord) -> Unit,
 ) {
@@ -439,7 +490,7 @@ private fun NetworkTab(
             record.error?.lowercase()?.contains(value) == true
     }
     if (records.isEmpty()) {
-        EmptyState("No network calls captured yet")
+        EmptyState(palette, "No network calls captured yet")
         return
     }
 
@@ -451,83 +502,104 @@ private fun NetworkTab(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        LazyColumn(modifier = Modifier.padding(top = 12.dp)) {
-        items(filtered) { record ->
-            Column(modifier = Modifier.padding(bottom = 12.dp)) {
-                Column(modifier = Modifier.clickable { onSelect(record) }) {
+        LazyColumn(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+            itemsIndexed(filtered) { index, record ->
+                if (index > 0) HorizontalDivider(color = palette.border, thickness = 1.dp)
+                Column(
+                    modifier = Modifier.fillMaxWidth().clickable { onSelect(record) }.padding(vertical = 10.dp),
+                ) {
                     Text(
                         text = record.method,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium,
+                        color = palette.onBackground,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = HeimdallDesign.bodySize,
                     )
-                    Text(record.url, color = HeimdallDesign.onSurfaceVariant, fontSize = 12.sp)
+                    Text(record.url, color = palette.onSurfaceVariant, fontSize = HeimdallDesign.labelSize, modifier = Modifier.padding(top = 2.dp))
                     Text(
                         text = record.error ?: (record.statusCode?.let { "HTTP $it" } ?: "Pending") +
                             (record.durationMillis?.let { " • ${it} ms" } ?: ""),
-                        color = if (record.isError) HeimdallDesign.error else HeimdallDesign.success,
-                        fontSize = 12.sp,
+                        color = if (record.isError) palette.error else palette.success,
+                        fontSize = HeimdallDesign.labelSize,
                         modifier = Modifier.padding(top = 4.dp),
                     )
                 }
             }
         }
-        }
     }
 }
 
 @Composable
-private fun NetworkDetail(record: io.heimdall.core.NetworkRecord, onBack: () -> Unit) {
+private fun NetworkDetail(palette: HeimdallPalette, record: io.heimdall.core.NetworkRecord, onBack: () -> Unit) {
     val clipboard = LocalClipboardManager.current
-    LazyColumn {
+    LazyColumn(modifier = Modifier.fillMaxWidth()) {
         item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack, modifier = Modifier.semantics { contentDescription = "Back to network calls" }) {
-                    Text("←", color = HeimdallDesign.onSurfaceVariant, fontSize = 22.sp)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = palette.onSurfaceVariant, modifier = Modifier.size(HeimdallDesign.iconSize))
                 }
-                Text("${record.method} ${record.url}", color = HeimdallDesign.onSurface, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    "${record.method} ${record.url}",
+                    color = palette.onSurface,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = HeimdallDesign.bodySize,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-            Row(modifier = Modifier.padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Surface(color = if (record.isError) HeimdallDesign.error else HeimdallDesign.success, shape = RoundedCornerShape(6.dp)) {
-                    Text("${record.statusCode ?: "Pending"}", color = HeimdallDesign.onSuccess, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp))
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Surface(color = if (record.isError) palette.error else palette.success, shape = RoundedCornerShape(6.dp)) {
+                    Text(
+                        "${record.statusCode ?: "Pending"}",
+                        color = palette.onSuccess,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = HeimdallDesign.labelSize,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                    )
                 }
-                record.durationMillis?.let { Text("$it ms", color = HeimdallDesign.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp)) }
+                record.durationMillis?.let {
+                    Text("$it ms", color = palette.onSurfaceVariant, fontSize = HeimdallDesign.labelSize, modifier = Modifier.padding(start = 8.dp))
+                }
             }
             OutlinedButton(
                 onClick = { clipboard.setText(AnnotatedString(record.toCurl())) },
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = palette.onBackground),
+                border = BorderStroke(1.dp, palette.border),
                 modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp),
             ) {
+                Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(HeimdallDesign.smallIconSize))
                 Text("Copy cURL", modifier = Modifier.padding(start = 8.dp))
             }
-            NetworkBlock(clipboard, "Request headers", record.requestHeaders.entries.joinToString("\n") { "${it.key}: ${it.value}" })
-            NetworkBlock(clipboard, "Request body", record.requestBody ?: "No request body")
-            NetworkBlock(clipboard, "Response headers", record.responseHeaders.entries.joinToString("\n") { "${it.key}: ${it.value}" })
-            NetworkBlock(clipboard, "Response body", record.responseBody ?: record.error ?: "No response body")
+            CopyableCodeBlock(palette, clipboard, "Request headers", record.requestHeaders.entries.joinToString("\n") { "${it.key}: ${it.value}" })
+            CopyableCodeBlock(palette, clipboard, "Request body", record.requestBody ?: "No request body")
+            CopyableCodeBlock(palette, clipboard, "Response headers", record.responseHeaders.entries.joinToString("\n") { "${it.key}: ${it.value}" })
+            CopyableCodeBlock(palette, clipboard, "Response body", record.responseBody ?: record.error ?: "No response body")
         }
     }
 }
 
 @Composable
-private fun NetworkBlock(clipboard: androidx.compose.ui.platform.ClipboardManager, title: String, value: String) {
-    Column(modifier = Modifier.padding(bottom = 14.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(title, color = Color.White, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+private fun CopyableCodeBlock(palette: HeimdallPalette, clipboard: androidx.compose.ui.platform.ClipboardManager, title: String, value: String) {
+    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(title, color = palette.onBackground, fontWeight = FontWeight.Medium, fontSize = HeimdallDesign.bodySize, modifier = Modifier.weight(1f))
             IconButton(
                 onClick = { clipboard.setText(AnnotatedString(value)) },
                 modifier = Modifier.semantics { contentDescription = "Copy $title" },
-            ) { Text("⧉", color = HeimdallDesign.onSurfaceVariant, fontSize = 18.sp) }
+            ) { Icon(Icons.Filled.ContentCopy, contentDescription = null, tint = palette.onSurfaceVariant, modifier = Modifier.size(HeimdallDesign.smallIconSize)) }
         }
         Surface(
-            color = CodeBackground,
+            color = palette.code,
             shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.padding(top = 6.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
         ) {
             SelectionContainer {
                 Text(
                     value,
-                    color = HeimdallDesign.onCode,
-                    fontSize = 12.sp,
+                    color = palette.onCode,
+                    fontSize = HeimdallDesign.bodySize,
                     fontFamily = FontFamily.Monospace,
-                    modifier = Modifier.padding(10.dp),
+                    modifier = Modifier.fillMaxWidth().padding(10.dp),
                 )
             }
         }
@@ -541,46 +613,49 @@ private fun io.heimdall.core.NetworkRecord.toCurl(): String = buildString {
 }
 
 @Composable
-private fun DatabaseTab(snapshots: List<io.heimdall.core.DatabaseSnapshot>) {
+private fun DatabaseTab(
+    palette: HeimdallPalette,
+    snapshots: List<io.heimdall.core.DatabaseSnapshot>,
+    selected: Pair<String, String>?,
+    onSelect: (Pair<String, String>?) -> Unit,
+) {
     if (snapshots.isEmpty()) {
-        EmptyState("No databases discovered")
+        EmptyState(palette, "No databases discovered")
         return
     }
 
-    var selectedDatabase by remember { mutableStateOf<String?>(null) }
-    var selectedTable by remember { mutableStateOf<String?>(null) }
-    val databaseName = selectedDatabase
+    val databaseName = selected?.first
     val table = snapshots.firstOrNull { it.databaseName == databaseName }
-        ?.tables?.firstOrNull { it.name == selectedTable }
+        ?.tables?.firstOrNull { it.name == selected?.second }
 
     if (table != null && databaseName != null) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { selectedTable = null }, modifier = Modifier.semantics { contentDescription = "Back to tables" }) {
-                    Text("←", color = HeimdallDesign.onSurfaceVariant, fontSize = 22.sp)
+                IconButton(onClick = { onSelect(null) }, modifier = Modifier.semantics { contentDescription = "Back to tables" }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = palette.onSurfaceVariant, modifier = Modifier.size(HeimdallDesign.iconSize))
                 }
-                Text("$databaseName / ${table.name}", color = HeimdallDesign.onSurface, fontWeight = FontWeight.Bold)
+                Text("$databaseName / ${table.name}", color = palette.onSurface, fontWeight = FontWeight.Bold, fontSize = HeimdallDesign.bodySize)
             }
-            DatabaseTableGrid(databaseName = databaseName, table = table)
+            DatabaseTableGrid(palette, databaseName = databaseName, table = table)
         }
         return
     }
 
-    LazyColumn {
+    LazyColumn(modifier = Modifier.fillMaxWidth()) {
         items(snapshots.flatMap { snapshot -> snapshot.tables.map { snapshot.databaseName to it } }) { (databaseName, tableItem) ->
             Surface(
-                color = HeimdallDesign.surface,
+                color = palette.surface,
                 shape = RoundedCornerShape(HeimdallDesign.corner),
+                border = BorderStroke(1.dp, palette.border),
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).clickable {
-                    selectedDatabase = databaseName
-                    selectedTable = tableItem.name
+                    onSelect(databaseName to tableItem.name)
                 },
             ) {
                 Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("▦", color = HeimdallDesign.primary, fontSize = 20.sp)
+                    Icon(Icons.Filled.Storage, contentDescription = null, tint = palette.primary, modifier = Modifier.size(HeimdallDesign.iconSize))
                     Column(modifier = Modifier.padding(start = 10.dp)) {
-                        Text(tableItem.name, color = HeimdallDesign.onSurface, fontWeight = FontWeight.Bold)
-                        Text("$databaseName • ${tableItem.rows.size} rows", color = HeimdallDesign.onSurfaceVariant, fontSize = 12.sp)
+                        Text(tableItem.name, color = palette.onSurface, fontWeight = FontWeight.Bold, fontSize = HeimdallDesign.bodySize)
+                        Text("$databaseName • ${tableItem.rows.size} rows", color = palette.onSurfaceVariant, fontSize = HeimdallDesign.labelSize)
                     }
                 }
             }
@@ -589,7 +664,7 @@ private fun DatabaseTab(snapshots: List<io.heimdall.core.DatabaseSnapshot>) {
 }
 
 @Composable
-private fun DatabaseTableGrid(databaseName: String, table: io.heimdall.core.DatabaseTable) {
+private fun DatabaseTableGrid(palette: HeimdallPalette, databaseName: String, table: io.heimdall.core.DatabaseTable) {
     var query by remember { mutableStateOf("") }
     val filteredRows by produceState(initialValue = table.rows, query, table, databaseName) {
         value = withContext(Dispatchers.Default) {
@@ -607,13 +682,14 @@ private fun DatabaseTableGrid(databaseName: String, table: io.heimdall.core.Data
             modifier = Modifier.fillMaxWidth(),
         )
         Surface(
-            color = TableRow,
+            color = palette.surface,
             shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, palette.border),
             modifier = Modifier.padding(top = 8.dp).horizontalScroll(scrollState),
         ) {
             Column {
-                TableRowView(table.columns, isHeader = true)
-                filteredRows.forEach { row -> TableRowView(row.map { it ?: "NULL" }) }
+                TableRowView(palette, table.columns, isHeader = true)
+                filteredRows.forEach { row -> TableRowView(palette, row.map { it ?: "NULL" }) }
             }
         }
     }
@@ -650,6 +726,7 @@ internal fun buildSearchQuery(tableName: String, columns: List<String>, searchTe
 
 @Composable
 private fun TableRowView(
+    palette: HeimdallPalette,
     values: List<String>,
     isHeader: Boolean = false,
     cellWidth: androidx.compose.ui.unit.Dp = 116.dp,
@@ -657,11 +734,11 @@ private fun TableRowView(
 ) {
     Row {
         values.forEach { value ->
-            Surface(color = if (isHeader) TableHeader else TableRow) {
+            Surface(color = if (isHeader) palette.surfaceVariant else palette.surface) {
                 Text(
                     value,
-                    color = if (isHeader) HeimdallDesign.onSurface else HeimdallDesign.onCode,
-                    fontSize = 11.sp,
+                    color = if (isHeader) palette.onSurface else palette.onCode,
+                    fontSize = HeimdallDesign.labelSize,
                     fontWeight = if (isHeader) FontWeight.Bold else FontWeight.Normal,
                     maxLines = maxLines,
                     overflow = TextOverflow.Ellipsis,
@@ -673,7 +750,7 @@ private fun TableRowView(
 }
 
 @Composable
-private fun StorageTab(snapshots: Map<String, io.heimdall.core.StorageSnapshot>) {
+private fun StorageTab(palette: HeimdallPalette, snapshots: Map<String, io.heimdall.core.StorageSnapshot>) {
     var query by remember { mutableStateOf("") }
     val normalizedQuery = query.trim().lowercase()
     val entries = snapshots.values.mapNotNull { snapshot ->
@@ -687,27 +764,28 @@ private fun StorageTab(snapshots: Map<String, io.heimdall.core.StorageSnapshot>)
     }
     if (entries.isEmpty()) {
         Column {
-            OutlinedTextField(query, { query = it }, label = { Text("Search storage keys or values") }, singleLine = true)
-            EmptyState(if (snapshots.isEmpty()) "No storage sources discovered" else "No matching storage values")
+            OutlinedTextField(query, { query = it }, label = { Text("Search storage keys or values") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            EmptyState(palette, if (snapshots.isEmpty()) "No storage sources discovered" else "No matching storage values")
         }
         return
     }
 
     Column {
-        OutlinedTextField(query, { query = it }, label = { Text("Search storage keys or values") }, singleLine = true)
-        LazyColumn(modifier = Modifier.padding(top = 12.dp)) {
+        OutlinedTextField(query, { query = it }, label = { Text("Search storage keys or values") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        LazyColumn(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
         items(entries) { snapshot ->
             Column(modifier = Modifier.padding(bottom = 12.dp)) {
-                Text(snapshot.sourceName, color = Color.White, fontWeight = FontWeight.Medium)
+                Text(snapshot.sourceName, color = palette.onBackground, fontWeight = FontWeight.Medium, fontSize = HeimdallDesign.bodySize)
                 Surface(
-                    color = TableRow,
+                    color = palette.surface,
                     shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, palette.border),
                     modifier = Modifier.padding(top = 8.dp),
                 ) {
                     Column {
-                        TableRowView(listOf("Key", "Value"), isHeader = true, cellWidth = 180.dp, maxLines = 1)
+                        TableRowView(palette, listOf("Key", "Value"), isHeader = true, cellWidth = 180.dp, maxLines = 1)
                         snapshot.entries.forEach { (key, value) ->
-                            TableRowView(listOf(key, value), cellWidth = 180.dp, maxLines = Int.MAX_VALUE)
+                            TableRowView(palette, listOf(key, value), cellWidth = 180.dp, maxLines = Int.MAX_VALUE)
                         }
                     }
                 }
@@ -717,42 +795,94 @@ private fun StorageTab(snapshots: Map<String, io.heimdall.core.StorageSnapshot>)
     }
 }
 
+/** Severity color tiers so the eye can jump straight to what matters: fatal/error are the
+ * strongest accent, warnings get their own (distinct from error) accent, and info/debug/verbose
+ * step down in emphasis rather than all sharing one flat gray. */
+@Composable
+private fun logLevelAccent(palette: HeimdallPalette, level: io.heimdall.core.LogLevel): Color = when (level) {
+    io.heimdall.core.LogLevel.ERROR -> palette.error
+    io.heimdall.core.LogLevel.WARN -> palette.warning
+    io.heimdall.core.LogLevel.INFO -> palette.onSurface
+    io.heimdall.core.LogLevel.DEBUG, io.heimdall.core.LogLevel.VERBOSE -> palette.onSurfaceVariant
+}
+
 @Composable
 private fun LogsTab(
+    palette: HeimdallPalette,
     entries: List<io.heimdall.core.LogEntry>,
     crashes: List<io.heimdall.core.CrashRecord>,
+    selectedCrash: io.heimdall.core.CrashRecord?,
+    onSelectCrash: (io.heimdall.core.CrashRecord?) -> Unit,
 ) {
+    if (selectedCrash != null) {
+        CrashDetail(palette, selectedCrash) { onSelectCrash(null) }
+        return
+    }
+
     var query by remember { mutableStateOf("") }
+    var filter by remember { mutableStateOf(LogFilter.ALL) }
     val normalizedQuery = query.trim().lowercase()
-    val filteredEntries = entries.filter {
-        normalizedQuery.isEmpty() ||
-            it.tag.lowercase().contains(normalizedQuery) ||
-            it.message.lowercase().contains(normalizedQuery) ||
-            it.level.name.lowercase().contains(normalizedQuery)
+    val showCrashes = filter == LogFilter.ALL || filter == LogFilter.CRASHES
+    val entryLevel = filter.level
+
+    val filteredEntries = if (filter == LogFilter.CRASHES) {
+        emptyList()
+    } else {
+        entries.filter { entry ->
+            (entryLevel == null || entry.level == entryLevel) &&
+                (normalizedQuery.isEmpty() ||
+                    entry.tag.lowercase().contains(normalizedQuery) ||
+                    entry.message.lowercase().contains(normalizedQuery) ||
+                    entry.level.name.lowercase().contains(normalizedQuery))
+        }
     }
-    val filteredCrashes = crashes.filter {
-        normalizedQuery.isEmpty() ||
-            it.exceptionType.lowercase().contains(normalizedQuery) ||
-            it.message.orEmpty().lowercase().contains(normalizedQuery)
+    val filteredCrashes = if (!showCrashes) {
+        emptyList()
+    } else {
+        crashes.filter {
+            normalizedQuery.isEmpty() ||
+                it.exceptionType.lowercase().contains(normalizedQuery) ||
+                it.message.orEmpty().lowercase().contains(normalizedQuery)
+        }
     }
+
     Column {
-        OutlinedTextField(query, { query = it }, label = { Text("Search logs") }, singleLine = true)
+        Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+            LogFilter.entries.forEach { option ->
+                FilterChip(
+                    selected = filter == option,
+                    onClick = { filter = option },
+                    label = { Text(option.label) },
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+            }
+        }
+        OutlinedTextField(
+            query,
+            { query = it },
+            label = { Text("Search logs") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        )
         if (filteredEntries.isEmpty() && filteredCrashes.isEmpty()) {
-            EmptyState(if (entries.isEmpty() && crashes.isEmpty()) "No logs recorded" else "No matching logs")
+            EmptyState(palette, if (entries.isEmpty() && crashes.isEmpty()) "No logs recorded" else "No matching logs")
         } else {
-            LazyColumn(modifier = Modifier.padding(top = 12.dp)) {
+            LazyColumn(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
                 items(filteredCrashes) { crash ->
                     LogSurface(
+                        palette = palette,
                         title = "${if (crash.isFatal) "FATAL" else "CRASH"}: ${crash.exceptionType}",
                         detail = crash.message ?: "No exception message",
-                        accent = HeimdallDesign.error,
+                        accent = if (crash.isFatal) palette.error else palette.warning,
+                        modifier = Modifier.clickable { onSelectCrash(crash) },
                     )
                 }
                 items(filteredEntries) { entry ->
                     LogSurface(
+                        palette = palette,
                         title = "${entry.level.name}  ${entry.tag}",
                         detail = entry.message,
-                        accent = if (entry.level == io.heimdall.core.LogLevel.ERROR) HeimdallDesign.error else HeimdallDesign.onSurfaceVariant,
+                        accent = logLevelAccent(palette, entry.level),
                     )
                 }
             }
@@ -760,44 +890,101 @@ private fun LogsTab(
     }
 }
 
+/** [level] is null for [ALL]/[CRASHES], which aren't a single [io.heimdall.core.LogLevel]. */
+private enum class LogFilter(val label: String, val level: io.heimdall.core.LogLevel?) {
+    ALL("All", null),
+    CRASHES("Crashes", null),
+    ERROR("Error", io.heimdall.core.LogLevel.ERROR),
+    WARN("Warn", io.heimdall.core.LogLevel.WARN),
+    INFO("Info", io.heimdall.core.LogLevel.INFO),
+    DEBUG("Debug", io.heimdall.core.LogLevel.DEBUG),
+    VERBOSE("Verbose", io.heimdall.core.LogLevel.VERBOSE),
+}
+
 @Composable
-private fun LogSurface(title: String, detail: String, accent: Color) {
+private fun LogSurface(palette: HeimdallPalette, title: String, detail: String, accent: Color, modifier: Modifier = Modifier) {
     Surface(
-        color = TableRow,
+        color = palette.surface,
         shape = RoundedCornerShape(8.dp),
-        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        border = BorderStroke(1.dp, palette.border),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).then(modifier),
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
-            Text(title, color = accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-            Text(detail, color = HeimdallDesign.onSurface, fontSize = 12.sp, modifier = Modifier.padding(top = 5.dp))
+            Text(title, color = accent, fontWeight = FontWeight.Bold, fontSize = HeimdallDesign.bodySize)
+            Text(detail, color = palette.onSurface, fontSize = HeimdallDesign.bodySize, modifier = Modifier.padding(top = 5.dp))
         }
     }
 }
 
 @Composable
-private fun FlagsTab(definitions: List<io.heimdall.core.FlagDefinition>) {
+private fun CrashDetail(palette: HeimdallPalette, crash: io.heimdall.core.CrashRecord, onBack: () -> Unit) {
+    val clipboard = LocalClipboardManager.current
+    LazyColumn(modifier = Modifier.fillMaxWidth()) {
+        item {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack, modifier = Modifier.semantics { contentDescription = "Back to logs" }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = palette.onSurfaceVariant, modifier = Modifier.size(HeimdallDesign.iconSize))
+                }
+                Text(
+                    crash.exceptionType,
+                    color = palette.onSurface,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = HeimdallDesign.bodySize,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Surface(color = if (crash.isFatal) palette.error else palette.warning, shape = RoundedCornerShape(6.dp)) {
+                    Text(
+                        if (crash.isFatal) "FATAL" else "CRASH",
+                        color = palette.onSuccess,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = HeimdallDesign.labelSize,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                    )
+                }
+                Text(
+                    formatSessionTimestamp(crash.timestampMillis),
+                    color = palette.onSurfaceVariant,
+                    fontSize = HeimdallDesign.labelSize,
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+            crash.message?.let {
+                Text(it, color = palette.onSurface, fontSize = HeimdallDesign.bodySize, modifier = Modifier.padding(bottom = 14.dp))
+            }
+            CopyableCodeBlock(palette, clipboard, "Stack trace", crash.stackTraceText)
+        }
+    }
+}
+
+
+@Composable
+private fun FlagsTab(palette: HeimdallPalette, definitions: List<io.heimdall.core.FlagDefinition>) {
     var query by remember { mutableStateOf("") }
     val filteredDefinitions = definitions.filter {
         val value = query.trim().lowercase()
         value.isEmpty() || it.key.lowercase().contains(value) || it.label.lowercase().contains(value)
     }
     if (definitions.isEmpty()) {
-        EmptyState("No feature flags registered")
+        EmptyState(palette, "No feature flags registered")
         return
     }
 
     Column {
-        OutlinedTextField(query, { query = it }, label = { Text("Search flags") }, singleLine = true)
-        LazyColumn(modifier = Modifier.padding(top = 12.dp)) {
+        OutlinedTextField(query, { query = it }, label = { Text("Search flags") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        LazyColumn(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
             item {
                 Button(
                     onClick = { Heimdall.flags.resetAll() },
-                    modifier = Modifier.padding(bottom = 12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                 ) { Text("Reset overrides") }
                 if (Heimdall.flags.restartHandler != null) {
                     Button(
                         onClick = { Heimdall.flags.requestRestart() },
-                        modifier = Modifier.padding(bottom = 12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                     ) { Text("Restart app") }
                 }
             }
@@ -805,17 +992,18 @@ private fun FlagsTab(definitions: List<io.heimdall.core.FlagDefinition>) {
             val overrideValue = Heimdall.flags.overrideFor(flag.key)
             val currentValue = overrideValue ?: flag.default
             Surface(
-                color = HeimdallDesign.surface,
+                color = palette.surface,
                 shape = RoundedCornerShape(HeimdallDesign.corner),
+                border = BorderStroke(1.dp, palette.border),
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             ) {
                 Column(modifier = Modifier.padding(10.dp)) {
-                    Text(flag.label, color = HeimdallDesign.onSurface, fontWeight = FontWeight.Bold)
-                    Text(flag.key, color = HeimdallDesign.onSurfaceVariant, fontSize = 11.sp)
+                    Text(flag.label, color = palette.onSurface, fontWeight = FontWeight.Bold, fontSize = HeimdallDesign.bodySize)
+                    Text(flag.key, color = palette.onSurfaceVariant, fontSize = HeimdallDesign.labelSize)
                     Text(
                         text = "Default: ${flag.default} | ${if (overrideValue != null) "Override: $overrideValue" else "No override"}",
-                        color = HeimdallDesign.onSurfaceVariant,
-                        fontSize = 12.sp,
+                        color = palette.onSurfaceVariant,
+                        fontSize = HeimdallDesign.labelSize,
                         modifier = Modifier.padding(top = 6.dp),
                     )
 
@@ -825,8 +1013,8 @@ private fun FlagsTab(definitions: List<io.heimdall.core.FlagDefinition>) {
                                 onClick = { Heimdall.flags.setOverride(flag.key, FlagValue.BoolValue(!value.value)) },
                             ) { Text(if (value.value) "Turn off" else "Turn on") }
                         }
-                        is FlagValue.TextValue -> TextFlagEditor(flag.key, value.value)
-                        is FlagValue.NumberValue -> NumberFlagEditor(flag.key, value.value)
+                        is FlagValue.TextValue -> TextFlagEditor(palette, flag.key, value.value)
+                        is FlagValue.NumberValue -> NumberFlagEditor(palette, flag.key, value.value)
                     }
                     if (overrideValue != null) {
                         TextButton(onClick = { Heimdall.flags.setOverride(flag.key, null) }) {
@@ -841,7 +1029,7 @@ private fun FlagsTab(definitions: List<io.heimdall.core.FlagDefinition>) {
 }
 
 @Composable
-private fun TextFlagEditor(key: String, current: String) {
+private fun TextFlagEditor(palette: HeimdallPalette, key: String, current: String) {
     var draft by remember(key, current) { mutableStateOf(current) }
     OutlinedTextField(
         value = draft,
@@ -856,7 +1044,7 @@ private fun TextFlagEditor(key: String, current: String) {
 }
 
 @Composable
-private fun NumberFlagEditor(key: String, current: Double) {
+private fun NumberFlagEditor(palette: HeimdallPalette, key: String, current: Double) {
     var draft by remember(key, current) { mutableStateOf(current.toString()) }
     val parsed = draft.toDoubleOrNull()
     OutlinedTextField(
@@ -874,8 +1062,8 @@ private fun NumberFlagEditor(key: String, current: Double) {
 }
 
 @Composable
-private fun EmptyState(message: String) {
+private fun EmptyState(palette: HeimdallPalette, message: String) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(message, color = Color.White)
+        Text(message, color = palette.onSurfaceVariant, fontSize = HeimdallDesign.bodySize)
     }
 }

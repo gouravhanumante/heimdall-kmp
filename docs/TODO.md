@@ -39,6 +39,15 @@ Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
   install, `pod install` in CI, and could conflict with the sample's existing setup) that deserves
   its own discussion, not a quiet add. Explicit type metadata for ambiguous string values on
   Android also remains.
+- **Automatic frame/jank monitoring was removed, not just deferred.** Android's `Choreographer`
+  and iOS's `CADisplayLink` monitors (`FrameRecord`, `HealthRules.slowFrames`, "Worst frame" in
+  Overview) measured every frame the process drew — including Heimdall's own popup, since
+  `HeimdallOverlay` draws in the same window as the app. There was no way to tell "the app's
+  screen was janky" from "opening the inspector to check for jank was itself the jank." Decided
+  against re-attempting this without a real way to exclude Heimdall's own UI from the
+  measurement; the recommended workaround for now is Android Studio's Layout Inspector /
+  Instruments, not Heimdall. `Heimdall.measure(...)` (explicit, developer-named durations) is
+  unaffected and remains the only performance signal in Health/Overview.
 - **`Heimdall.install()` isn't enforced at compile time**, only at runtime — and deliberately not
   by crashing. `Heimdall.log`/`event`/`measure`/`screen` and network capture (`NetworkStore.record`)
   silently no-op if called before `install()`, so a forgotten `install()` call can never crash a
@@ -49,17 +58,16 @@ Deliberately deferred work, per `.github/instructions/docs.instructions.md`.
   automatically invoked by instrumented code paths. True compile-time enforcement (e.g. routing
   every call through a scope object `install()` returns) remains a breaking API redesign, not
   attempted without discussing that tradeoff first — user confirmed runtime-safe is enough for now.
-- **Automatic Compose performance instrumentation.** `Heimdall.measure(...)` reports explicit
-  durations, and Android/iOS frame timing is implemented. Recomposition counts and automatic
-  screen render timing still need a Compose-specific integration with defined overhead limits.
-- **Runtime Compose recomposition counters.** Official compiler reports are enabled for `heimdall-ui`
-  and the shared sample under `build/compose-compiler`; those are static stability facts, not
-  runtime counts. A versioned optional compiler instrumentation plugin is still needed for strict
-  runtime recomposition measurements. Confirmed design constraint: a Kotlin compiler plugin can
-  only instrument a consumer's compilation if their build script applies it
+- **Compose recomposition metrics: decided against, not just unstarted.** Official compiler
+  reports are enabled for `heimdall-ui` and the shared sample under `build/compose-compiler`, but
+  those are static stability facts, not runtime counts. Runtime recomposition measurement would
+  need a versioned, optional Kotlin compiler plugin the *consumer* applies to their own build
   (`id("io.heimdall.recomposition")` or similar) — there is no way to get this "for free" from
   just adding a library dependency, the same way Compose itself needs
-  `org.jetbrains.kotlin.plugin.compose` applied explicitly. Not started.
+  `org.jetbrains.kotlin.plugin.compose` applied explicitly. Given the overhead/complexity of a
+  whole separate compiler plugin versus the value, decided not to pursue this for now; point
+  developers at Android Studio's Layout Inspector (which already shows recomposition counts) for
+  this in the meantime.
 - **Database search has no pagination.** Search now runs live against the real table (a bound
   `LIKE` query per column, see `docs/plugins/database.md`), so it's no longer limited to whatever
 

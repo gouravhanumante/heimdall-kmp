@@ -18,5 +18,5 @@ One row per feature. "Verified" means run and observed on that platform, not jus
 | Logs viewer | Core capture and panel view implemented; not run | `heimdall-core`/`heimdall-ui` compile for `iosSimulatorArm64`; not run |
 | Crash capture | Android sample uncaught-handler wiring and panel view implemented; not run | No platform uncaught-handler wiring |
 | Feature-flag overrides | In-memory override API and panel controls implemented; not run | Compiles for `iosSimulatorArm64`; not run |
-| Live frame timing | Android `Choreographer` monitor installed by `Heimdall.install`; not run | iOS `CADisplayLink` monitor installed by `Heimdall.install`; compiles for `iosSimulatorArm64`, not run |
+| Frame/jank timing | Not supported — removed; measured Heimdall's own popup along with the app, with no way to tell them apart (see `docs/TODO.md`) | Not supported — same reason |
 | No-op / release-safe artifact | All 6 modules have a `-noop` counterpart, JVM-tested (9 tests); demonstrated only via a plain `debugImplementation`/`releaseImplementation` pattern, not proven in this repo's own Android sample (see docs/TODO.md) | All 6 compile for `iosArm64`/`iosSimulatorArm64`; the `CONFIGURATION`-env-var swap is implemented and verified end-to-end in `sample/shared` (compiles all 3 ways: unset/`Debug`/`Release`), not run on a device |

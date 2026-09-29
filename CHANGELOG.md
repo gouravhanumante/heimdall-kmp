@@ -5,7 +5,50 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
 
 ## Unreleased
 
+### Added
+- Logs tab: severity filter chips (All, Crashes, Error, Warn, Info, Debug, Verbose) above the
+  search field. Tapping a crash row now opens a detail screen showing the full stack trace
+  (`CrashRecord.stackTraceText`) in a copyable monospace block — previously only the exception
+  type and message were shown, and the full trace was captured but never rendered anywhere.
+
+### Removed
+- **Breaking**: automatic frame/jank monitoring (`AndroidFrameMonitor`/`IosFrameMonitor`,
+  `FrameRecord`, `PerformanceStore.frames`/`recordFrame`, `HealthRules.slowFrames`, Overview's
+  "N slow frames"/"Worst frame" text) is gone. It measured every frame the process drew,
+  including Heimdall's own popup — since `HeimdallOverlay` draws in the same window as the app,
+  opening the inspector to check for jank could itself register as the jank, with no way to tell
+  the two apart. `Heimdall.measure(...)` (explicit, developer-named durations) is unaffected.
+  Also removed the now-unused `MetricConfidence.COMPILER_ANALYSIS`/`ESTIMATED` enum values, which
+  existed only for a planned Compose recomposition metric that was never built and has been
+  decided against — see `docs/TODO.md`.
+
 ### Changed
+- Overview's "Current session" raw counts (network calls, logs, timeline events) are gone — they
+  duplicated Health's own numbers without the status coloring, and weren't actionable on their
+  own. Health is now the single place Overview shows session counts.
+- Tapping a rail icon (Network, Database) now always returns to that tab's top-level list, even
+  if you were already on it drilled into a detail/table — previously tapping Network again while
+  viewing a call's detail did nothing, since only `selectedTab` changed and the drilled-down
+  record/table selection was untouched.
+- Sessions are now labeled "Current session" / "Previous session" / "N sessions ago" instead of
+  a raw, meaningless "Session &lt;database id&gt;".
+- **Panel visual rework**: rail/action icons are now real vector icons (`material-icons-extended`,
+  pinned to `1.7.3` — this artifact isn't versioned in lockstep with Compose Multiplatform)
+  instead of plain Unicode glyphs. Every tab now consistently uses `HeimdallDesign.palette()`
+  instead of `HeimdallDesign`'s raw dark-mode-only constants, so the panel actually follows the
+  device light/dark setting as `docs/overlay.md` already claimed — previously only the header did;
+  everything else (Overview, Network, Database, Storage, Logs, Flags, Sessions) was hardcoded to
+  dark colors and would have rendered with unreadable near-white-on-white text in light mode.
+  Cards/rows now have a visible border for contrast against the background, log severities have
+  distinct colors (fatal/error red, warning amber, info/debug/verbose stepped down) instead of
+  everything but errors sharing one flat gray, and text sizes are drawn from a shared type scale
+  (`HeimdallDesign.screenTitleSize/sectionTitleSize/bodySize/labelSize/captionSize`) instead of
+  one-off numbers.
+- Sessions are now capped at the 3 most recent launches (`SessionRepository.MAX_RETAINED_SESSIONS`)
+  — older ones are pruned on the next `Heimdall.install(...)`, independent of the existing 24-hour
+  retention window. The Sessions tab highlights whichever run is currently being viewed, and every
+  panel tab shows a "Viewing session N — not live" banner with a one-tap way back to live data
+  while a historical session is selected.
 - **Breaking**: `IosShakeListener`'s internal `motionEndedWithShake()` is now the public
   `notifyShakeDetected()` — a consumer's own `UIResponder.motionEnded` override must call this to
   forward `UIEventSubtypeMotionShake`, and `internal` never actually let that compile across the
@@ -176,6 +219,12 @@ All notable, consumer-observable changes to Heimdall are recorded here. See
   into an Activity.
 
 ### Fixed
+- Network detail's request/response body blocks (and several other panel search fields/lists)
+  had no bounded width anywhere in their layout, so a long, unbroken line (e.g. minified JSON)
+  overflowed past the popup's edge and was rendered off-screen instead of wrapping — it looked
+  truncated even though the full text was captured and stored correctly. Also fixed: Logs',
+  Flags', and Storage's search fields, and Flags' global action buttons, weren't full-width like
+  Network's and Database's, making the tabs look inconsistent.
 - **A forgotten `Heimdall.install()` call could crash real app functionality, not just fail to
   record.** `NetworkStore`/`LogStore`/`EventStore.record()` called `HeimdallDatabase.write`, which
   threw `IllegalStateException` if the database wasn't open yet — and since `NetworkStore.record`

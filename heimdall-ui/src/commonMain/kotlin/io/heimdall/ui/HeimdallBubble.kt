@@ -17,6 +17,9 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -181,7 +184,7 @@ private fun HideTarget(active: Boolean, modifier: Modifier = Modifier) {
                 .background(if (active) HideTargetActive else HideTargetIdle),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = "✕", color = Color.White, fontSize = 22.sp)
+            Icon(Icons.Filled.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
         }
         Text(
             text = "Drop to hide · shake to bring back",

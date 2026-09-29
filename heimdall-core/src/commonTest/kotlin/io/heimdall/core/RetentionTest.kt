@@ -65,4 +65,17 @@ class RetentionTest {
 
         assertEquals(listOf(today), SessionRepository.listSessions().map { it.id })
     }
+
+    @Test
+    fun `only the most recent MAX_RETAINED_SESSIONS launches are kept, even within the retention window`() {
+        val now = epochMillisNow()
+        val first = SessionRepository.startNewSession(now)
+        insertCall(first, "first-launch-call", now)
+        val second = SessionRepository.startNewSession(now + 1)
+        val third = SessionRepository.startNewSession(now + 2)
+        val fourth = SessionRepository.startNewSession(now + 3)
+
+        assertEquals(listOf(fourth, third, second), SessionRepository.listSessions().map { it.id })
+        assertEquals(emptyList(), callIds())
+    }
 }

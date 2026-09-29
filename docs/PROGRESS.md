@@ -11,7 +11,7 @@ noted, "has unit tests", not "works".
 | # | Chunk | Status |
 |---|---|---|
 | 1 | Overlay shell: bubble, drag, hide, shake-to-recall, floating inspector | Rewritten, floating window now implemented; device verification remains |
-| 2 | Heimdall's own database, launch sessions, 24h retention | Committed, tested |
+| 2 | Heimdall's own database, launch sessions, 24h retention + 3-session cap | Committed, tested |
 | 3 | Network capture (Ktor): headers/bodies as-is, failed calls recorded | Committed, tested |
 | 4 | Storage: DataStore, SharedPreferences, Keystore, UserDefaults, Keychain | Rewritten, not yet compiled/tested |
 | 5 | Logs and crashes | In progress (recording and live UI exist in core, panel is wired in) |

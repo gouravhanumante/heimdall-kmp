@@ -2,7 +2,6 @@ package io.heimdall.core
 
 private object AndroidPlatformHooks {
     var installed = false
-    var frameMonitor: AndroidFrameMonitor? = null
 }
 
 internal actual fun installPlatformHooks(context: PlatformContext) {
@@ -15,6 +14,4 @@ internal actual fun installPlatformHooks(context: PlatformContext) {
         Heimdall.markCurrentSessionCrashed()
         defaultHandler?.uncaughtException(thread, throwable)
     }
-
-    AndroidPlatformHooks.frameMonitor = AndroidFrameMonitor().also { it.start() }
 }

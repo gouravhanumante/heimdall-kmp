@@ -46,8 +46,13 @@ object HeimdallDesign {
     val border = Color(0xFF34465B)
     val corner = 8.dp
     val popupCorner = 18.dp
+    val screenTitleSize = 18.sp
+    val sectionTitleSize = 15.sp
     val bodySize = 13.sp
     val labelSize = 11.sp
+    val captionSize = 10.sp
+    val iconSize = 20.dp
+    val smallIconSize = 18.dp
     val codeFont = FontFamily.Monospace
 
     @androidx.compose.runtime.Composable

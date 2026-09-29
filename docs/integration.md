@@ -7,10 +7,12 @@ real `publishToMavenCentral`/`publishToMavenLocal` tasks, and
 but nothing has actually been pushed to Central yet. That needs, separately from this repo:
 
 - A verified Central Portal namespace for `io.github.gouravhanumante`.
-- A GPG signing key (`signAllPublications()` requires one; `./gradlew generatePgpKeys` can create
-  one).
-- A Central Portal user token (`mavenCentralUsername`/`mavenCentralPassword` in
-  `~/.gradle/gradle.properties`, never committed).
+- A GPG signing key (`signAllPublications()` requires one) — `gpg --full-generate-key` to create
+  one, then `gpg --export-secret-keys --armor <key id>` to get the value for
+  `signingInMemoryKey` below.
+- A Central Portal user token (`mavenCentralUsername`/`mavenCentralPassword`) generated at
+  https://central.sonatype.com/account, plus `signingInMemoryKey`/`signingInMemoryKeyPassword`
+  for the GPG key above — all four go in `~/.gradle/gradle.properties`, never committed.
 
 Once published, the coordinates will be:
 

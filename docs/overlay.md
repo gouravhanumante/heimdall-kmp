@@ -50,26 +50,37 @@ Implemented in `heimdall-ui` (`HeimdallOverlay`, `HeimdallBubbleLayer`, `Heimdal
   PNG Compose resource. Android runtime uses the PNG because Compose Android does not decode SVG
   resources directly.
 - The inspector shell follows the device light/dark setting through `HeimdallDesign.palette()`;
-  code/data surfaces keep their structured developer-tool contrast in either mode.
-- Overview shows current-session counts, recent activity, and slow measured operations. Timeline
-  events remain available as activity data rather than a primary navigation destination.
-- Overview also shows a Health table containing only currently measured crashes, network errors,
-  and explicit slow operations. Compose recomposition, frame-jank, and component-health metrics are
-  not shown until their instrumentation exists.
+  code/data surfaces keep their structured developer-tool contrast in either mode. Every tab
+  (not just the header) reads colors from `palette()`, so switching the device theme restyles the
+  whole panel, not just the title bar.
+- Rail and inline actions use vector icons (`material-icons-extended`), not Unicode glyphs.
+  Log/crash severities are color-coded (fatal/error red, warning amber, info/debug/verbose
+  stepped down in emphasis) instead of only errors standing out.
+- Overview shows a Health table (fatal crashes, network errors, slow measured operations) and
+  quick-access shortcuts to Network/Database/Storage/Logs. Timeline events remain available as
+  activity data (`Heimdall.events`) rather than a primary navigation destination or an Overview
+  summary line.
+- Overview's Health table only covers currently measured crashes, network errors, and explicit
+  slow operations (`Heimdall.measure(...)`). Frame/jank and Compose recomposition metrics are
+  deliberately not measured — see `docs/TODO.md` for why.
 - Flags support search, boolean toggles, text/number override editors, global reset, and per-flag
   reset.
-- On Android, the sample also reports live frame intervals from `Choreographer`; slow-frame counts
-  and the worst measured interval appear in Overview and Health. No frame history is persisted.
-- Android crash capture and frame monitoring are installed by `Heimdall.install(...)`; the sample
+- Android crash capture is installed by `Heimdall.install(...)`; the sample
   only supplies the platform shake listener needed to recall the UI bubble.
 - Network details render request and response headers/bodies in selectable monospace code blocks,
   with a copy-cURL action.
 - Database first shows a table list, then drills into one selected table with column headers,
-  horizontally scrollable cells, and per-table search. Storage renders a key/value table; Logs and
-  Crashes render contained severity records. Collection views provide local search where the data
-  set can grow large.
-- Sessions lists current and previous runs. Selecting an older session switches Network, Logs,
-  Crashes, and Timeline to historical data; Database, Storage, and Flags remain live-only.
+  horizontally scrollable cells, and per-table search. Storage renders a key/value table.
+  Logs and Crashes share one filterable list (chips: All, Crashes, Error, Warn, Info, Debug,
+  Verbose) with local search; tapping a crash drills into a detail screen with the full stack
+  trace in a copyable monospace block, the same treatment Network details get. Collection views
+  provide local search where the data set can grow large.
+- Sessions lists at most the 3 most recent runs (`SessionRepository.MAX_RETAINED_SESSIONS`) —
+  older ones are pruned on the next launch regardless of the 24-hour retention window. Selecting
+  an older session switches Network, Logs, Crashes, and Timeline to historical data; Database,
+  Storage, and Flags remain live-only. The session list highlights whichever run is currently
+  being viewed (live or historical), and every tab shows a "Viewing session N — not live" banner
+  with a one-tap way back to live data while a historical session is selected.
 - Shared inspector tokens live in `HeimdallDesign`: panel/rail/surface colors, status colors,
   corner radii, code typography, and label sizes are reused across these views.
   Network, storage, database metadata, logs, crashes, and registered flags render published live
