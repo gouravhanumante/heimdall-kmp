@@ -89,9 +89,9 @@ Different per collector, decided per docs.instructions.md before building each o
   `PerformanceStore` feeds Overview, and each measurement is also written as a timeline event.
   Automatic Compose recomposition counting is a separate integration and is not inferred by this
   API.
-- **Network** (not yet built): a Ktor `HttpClient` plugin the consumer installs on their own
+- **Network** (implemented): a Ktor `HttpClient` plugin the consumer installs on their own
   client — Heimdall never owns the client.
-- **Database** (not yet built): consumer passes their existing driver/database instance in —
+- **Database** (implemented): consumer passes their existing driver/database instance in —
   Heimdall never creates or migrates it. The `DatabaseInspector` contract exposes a bounded
   snapshot and read-only query function; `DatabaseStore.attach(...)` registers it and refreshes
   it when the Database tab opens.

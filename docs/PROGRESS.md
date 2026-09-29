@@ -19,7 +19,7 @@ noted, "has unit tests", not "works".
 | 7 | Flags: persist overrides, restart button | In progress (typed overrides now persist in Heimdall's own database; restart action remains) |
 | 8 | UI: icon rail, overview, network details, database rows, searchable storage/logs, sessions | In progress (historical session browsing is wired; device verification remains) |
 | 9 | Showing the overlay in a real app (Android auto-inject, iOS window + shake) | Not started |
-| 10 | Release safety (no-op artifact) | Not started |
+| 10 | Release safety (no-op artifact) | Implemented: six module counterparts plus real/no-op umbrella bundles; JVM-tested and iOS compile-verified (see `docs/release-builds.md`) |
 | 11 | Sample app exercising every feature | In progress (Network/Feed use real Ktor calls and Coil images; Database uses bundled SQLite; Android Storage uses discovered SharedPreferences; iOS storage host wiring remains) |
 | 12 | Per-feature docs | Ongoing — written as each chunk lands |
 | — | Device verification, one chunk at a time | Not started |
@@ -71,5 +71,5 @@ chunk 5.
 - iOS has no shake listener or overlay host yet.
 - Android sample back handling closes the panel before app navigation; consuming apps still need
   to connect their own back dispatcher to the controller.
-- No no-op/release-safety artifact — do not ship this in a release build yet.
+- Release-safety artifacts are implemented, but no real release build has been run or inspected on a device (see `docs/release-builds.md`).
 - Keychain only lists generic-password items (what most apps use), not keys/certificates.
