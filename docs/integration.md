@@ -12,8 +12,8 @@ Ensure the consuming build resolves dependencies from `mavenCentral()` (usually 
 
 ```kotlin
 dependencies {
-        debugImplementation("io.github.gouravhanumante:heimdall:0.1.0-alpha02")
-        releaseImplementation("io.github.gouravhanumante:heimdall-noop:0.1.0-alpha02")
+    debugImplementation("io.github.gouravhanumante:heimdall:0.1.0-alpha02")
+    releaseImplementation("io.github.gouravhanumante:heimdall-noop:0.1.0-alpha02")
 }
 ```
 
@@ -95,11 +95,26 @@ exercises successful, failed and POST requests.
 
 ### Storage
 
-After install, call `Heimdall.discoverStorage(...)` for platform stores. Android discovers
-SharedPreferences and Keystore aliases; iOS discovers UserDefaults and Keychain data. Pass app
-group suite names on iOS when those suites should be included. Discovery sources are refreshed
-when the Storage tab opens. DataStore is different: pass Heimdall the app's already-open instance
-and a long-lived coroutine scope rather than having Heimdall open the same file a second time.
+After install, call storage discovery for platform stores. Android discovers SharedPreferences and
+Keystore aliases:
+
+```kotlin
+Heimdall.discoverStorage(context)
+```
+
+iOS discovers UserDefaults and Keychain data; pass app-group suite names when needed:
+
+```kotlin
+Heimdall.discoverStorage(appGroupSuiteNames = listOf("group.example.shared"))
+```
+
+Discovery sources refresh when the Storage tab opens. DataStore is different: pass the app's
+already-open instance and a long-lived coroutine scope rather than opening the same file twice:
+
+```kotlin
+Heimdall.attachDataStore(dataStore, name = "preferences", scope = appScope)
+```
+
 Storage shows current values, not per-session history. Edit support and source limitations are
 listed in [storage details](plugins/storage.md).
 
@@ -119,25 +134,55 @@ queries. Blobs are shown as byte counts. See [database details](plugins/database
 
 ### Logs And Crashes
 
-Heimdall does not import Android Logcat or system logs automatically. Send app-owned log records
-with `Heimdall.log(...)`; `Heimdall.recordCrash(...)` records a handled exception and its stack
-trace. On Android, the uncaught-exception handler installed by `Heimdall.install(...)` records
-fatal uncaught exceptions. On iOS, there is no automatic crash hook.
+Heimdall does not import Android Logcat or system logs automatically. Send app-owned records and
+handled exceptions explicitly:
+
+```kotlin
+Heimdall.log(LogLevel.INFO, "Checkout", "Checkout started")
+Heimdall.recordCrash(IllegalStateException("Handled checkout failure"), isFatal = false)
+```
+
+The log call matches the in-repo sample. On Android, the uncaught-exception handler installed by
+`Heimdall.install(...)` records fatal uncaught exceptions and marks the session crashed. On iOS,
+there is no automatic crash hook.
 
 ### Feature Flags
 
 Register the flags the app wants to expose using `Heimdall.flags.attach(...)` with a
-`FlagCatalog`/provider, or use `heimdall-flags-firebase` for Android Firebase Remote Config.
-Read flags through the provider returned from `attach`; panel overrides only affect those reads.
-The sample demonstrates the catalog/provider contract in its
-[flags screen](../sample/shared/src/commonMain/kotlin/io/heimdall/sample/shared/SampleApp.kt).
+`FlagCatalog`/provider. Use the returned provider for reads so panel overrides are applied:
+
+```kotlin
+val flags = Heimdall.flags.attach(appFlagCatalog)
+val enabled = flags.get("new_checkout", FlagValue.BoolValue(false))
+```
+
+For Android Firebase Remote Config, add `heimdall-flags-firebase` and attach the existing instance:
+
+```kotlin
+val flags = FirebaseRemoteConfig.getInstance().attachToHeimdall()
+val enabled = flags.get("new_checkout", FlagValue.BoolValue(false))
+```
+
+Firebase keys are discovered once. Pass explicit `FlagDefinition` values when automatic value
+shape inference is ambiguous. The checked-in sample currently registers a flag for display but
+does not demonstrate provider-backed overrides or Firebase; see its
+[sample integration](../sample/shared/src/commonMain/kotlin/io/heimdall/sample/shared/SampleApp.kt).
 
 ### Events, Screens And Timing
 
 Use `Heimdall.event(...)` for app-reported timeline entries and `Heimdall.setCurrentScreen(...)`
 or the scoped `Heimdall.screen(...)` API for attribution. Heimdall does not infer screens or
 events automatically. `Heimdall.measure(name) { ... }` records an explicit duration and a matching
-timeline event; it does not automatically profile frames or Compose recompositions.
+timeline event; it does not automatically profile frames or Compose recompositions. For example:
+
+```kotlin
+Heimdall.setCurrentScreen("Checkout")
+Heimdall.event("Checkout started")
+Heimdall.measure("parse_checkout") { parseCheckout(payload) }
+```
+
+The `setCurrentScreen` and `event` calls match the sample's screen lifecycle; timing is a direct
+call to the public core API.
 
 ## 5. Understand What The User Sees
 
